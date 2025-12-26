@@ -1,20 +1,23 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
+// Create axios instance
+const API: AxiosInstance = axios.create({
+  // Use environment variable, fallback to localhost for dev
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://dept-exec-backend.onrender.com/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  // Important for cross-domain cookies
+  withCredentials: false, // Set to true if using cookies
+});
+
 // Define response type
 export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   success?: boolean;
 }
-
-// Create axios instance
-const API: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
 // Request interceptor
 API.interceptors.request.use(
