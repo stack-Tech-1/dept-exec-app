@@ -4,7 +4,7 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 const API: AxiosInstance = axios.create({
   // Use environment variable, fallback to localhost for dev
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://dept-exec-backend.onrender.com/api',
-  timeout: 30000,
+  timeout: 80000,
   headers: {
     'Content-Type': 'application/json',
   },
