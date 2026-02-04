@@ -76,6 +76,8 @@ export default function TasksPage() {
   const [selectedStatus, setSelectedStatus] = useState('All Status')
   const [selectedPriority, setSelectedPriority] = useState('All Priorities')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPosition, setSelectedPosition] = useState('All Positions')
+  const positions = Array.from(new Set(executives.map(e => e.name))).sort()
 
   // Auto-check for overdue tasks
   useEffect(() => {
@@ -176,7 +178,10 @@ export default function TasksPage() {
       task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.assignedTo.name.toLowerCase().includes(searchQuery.toLowerCase())
     
-    return matchesStatus && matchesPriority && matchesSearch
+    const matchesPosition = selectedPosition === 'All Positions' || 
+      task.assignedTo.name === selectedPosition
+    
+    return matchesStatus && matchesPriority && matchesSearch && matchesPosition
   })
 
   return (
@@ -275,6 +280,17 @@ export default function TasksPage() {
           <span className="hidden sm:inline">More Filters</span>
           <span className="sm:hidden">Filters</span>
         </button>
+
+        <select 
+          value={selectedPosition}
+          onChange={(e) => setSelectedPosition(e.target.value)}
+          className="px-3 py-2 sm:px-4 sm:py-2.5 bg-white border border-gray-300 text-[#0d7c3d] font-medium rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] cursor-pointer text-sm"
+        >
+          <option>All Positions</option>
+          {positions.map(position => (
+            <option key={position} value={position}>{position}</option>
+          ))}
+        </select>
       </div>
 
       {/* View Toggle and Results Count */}

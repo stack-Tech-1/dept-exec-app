@@ -1,6 +1,5 @@
 // C:\Users\SMC\Documents\GitHub\dept-exec-app\src\app\dashboard\users\page.tsx
 'use client'
-
 import { useState, useEffect } from 'react'
 import InviteModal from '@/components/users/invite-modal'
 import { 
@@ -17,10 +16,13 @@ import {
   Briefcase,
   Calendar
 } from 'lucide-react'
+import ProfileModal from '@/components/users/profile-modal'
 import { authService } from '@/services/auth'
+import userService from '@/services/user'
 import API from '@/services/api'
 
 interface User {
+  id: string
   _id: string
   name: string
   email: string
@@ -30,6 +32,7 @@ interface User {
   isActive: boolean
   lastLogin: string
   createdAt: string
+  updatedAt: string
 }
 
 interface UsersResponse {
@@ -48,6 +51,10 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showUserMenu, setShowUserMenu] = useState<string | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<User | null>(null)
+  const [positionFilter, setPositionFilter] = useState('ALL')
+  const positions = Array.from(new Set(users.map(u => u.position).filter(Boolean))).sort()
 
   const currentUser = authService.getCurrentUser()
 
@@ -60,8 +67,25 @@ export default function UsersPage() {
       setLoading(true)
       setError('')
       const response = await API.get('/users')
+      console.log('API Response:', response) // Debug log
       const data = response as any as UsersResponse;
-      setUsers(data.users || [])
+      
+      // Transform backend data to match frontend User type
+      const transformedUsers = data.users?.map(user => ({
+        id: user._id, // Map _id to id
+        _id: user._id, // Keep original for compatibility
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        position: user.position,
+        isActive: user.isActive,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt || user.createdAt
+      })) || [];
+      
+      setUsers(transformedUsers)
     } catch (err: any) {
       console.error('Error fetching users:', err)
       setError(err.message || 'Failed to load users')
@@ -104,8 +128,10 @@ export default function UsersPage() {
       (statusFilter === 'ACTIVE' && user.isActive) ||
       (statusFilter === 'INACTIVE' && !user.isActive)
     
-    return matchesSearch && matchesRole && matchesStatus
-  })
+      const matchesPosition = positionFilter === 'ALL' || user.position === positionFilter
+  
+      return matchesSearch && matchesRole && matchesStatus && matchesPosition
+    })
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -125,6 +151,18 @@ export default function UsersPage() {
     return isActive
       ? 'bg-green-100 text-green-800 border-green-200'
       : 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+
+  // Add this function to handle profile edit
+  const handleEditProfile = (user: User) => {
+    setSelectedUserForEdit(user)
+    setShowProfileModal(true)
+    setShowUserMenu(null) // Close the menu
+  }
+
+  // Add this function to handle user updates
+  const handleUserUpdated = () => {
+    fetchUsers() // Refresh the user list
   }
 
   if (loading) {
@@ -239,6 +277,21 @@ export default function UsersPage() {
             </select>
             <Filter className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
           </div>
+
+          {/* Position Filter */}
+            <div className="relative">
+              <select
+                value={positionFilter}
+                onChange={(e) => setPositionFilter(e.target.value)}
+                className="appearance-none w-full sm:w-48 pl-3 pr-8 sm:pr-10 py-2 sm:py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] transition-all duration-200 text-sm"
+              >
+                <option value="ALL">All Positions</option>
+                {positions.map(position => (
+                  <option key={position} value={position}>{position}</option>
+                ))}
+              </select>
+              <Filter className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
+            </div>
 
           {/* Status Filter */}
           <div className="relative">
@@ -386,10 +439,13 @@ export default function UsersPage() {
                             />
                             <div className="absolute right-0 mt-2 w-40 sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                               <div className="py-1">
-                                <button className="flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100">
-                                  <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  Edit Profile
-                                </button>
+                              <button 
+                                onClick={() => handleEditProfile(user)}
+                                className="flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                                Edit Profile
+                              </button>
                                 
                                 <button 
                                   onClick={() => handleToggleStatus(user._id, user.isActive)}
@@ -440,30 +496,7 @@ export default function UsersPage() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Summary */}
-      <div className="bg-gray-50 rounded-lg sm:rounded-xl border border-gray-200 p-3 sm:p-4 md:p-5">
-        <h3 className="font-semibold text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Members Summary</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
-          <div>
-            <p className="text-gray-600">Total Members</p>
-            <p className="font-semibold">{users.length}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">Administrators</p>
-            <p className="font-semibold">{users.filter(u => u.role === 'ADMIN').length}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">Executives</p>
-            <p className="font-semibold">{users.filter(u => u.role === 'EXEC').length}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">Active Members</p>
-            <p className="font-semibold">{users.filter(u => u.isActive).length}</p>
-          </div>
-        </div>
-      </div>
+      </div>    
       
       <InviteModal
         isOpen={showInviteModal}
@@ -472,6 +505,15 @@ export default function UsersPage() {
           fetchUsers();
           setShowInviteModal(false);
         }}
+      />
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => {
+          setShowProfileModal(false)
+          setSelectedUserForEdit(null)
+        }}
+        user={selectedUserForEdit}
+        onUpdate={handleUserUpdated}
       />
     </div>
   )

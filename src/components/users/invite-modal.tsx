@@ -1,3 +1,4 @@
+//C:\Users\SMC\Documents\GitHub\dept-exec-app\src\components\users\invite-modal.tsx
 'use client'
 import { EXECUTIVE_POSITIONS, type ExecutivePosition, } from '@/utils/positions'  
 import { useState } from 'react'
