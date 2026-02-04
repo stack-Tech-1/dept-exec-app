@@ -75,6 +75,11 @@ class MinutesService {
     });
   }
 
+  // Extract tasks from minutes
+  async extractTasks(minutesId: string): Promise<any> {    
+    return API.post(`/minutes/${minutesId}/extract-tasks`);
+  }
+
   // Get minutes statistics
   async getStatistics(): Promise<{
     total: number;
@@ -86,6 +91,7 @@ class MinutesService {
     return API.get('/minutes/statistics');
   }
 }
+
 
 export const minutesService = new MinutesService();
 export default minutesService;

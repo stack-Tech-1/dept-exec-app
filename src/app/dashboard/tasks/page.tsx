@@ -116,6 +116,36 @@ export default function TasksPage() {
     )
   }
 
+    const PositionFilter = ({ positions, selectedPosition, onSelect }: any) => {
+      return (
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => onSelect('ALL')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+              selectedPosition === 'ALL'
+                ? 'bg-[#0d7c3d] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All Positions
+          </button>
+          {positions.map((position: string) => (
+            <button
+              key={position}
+              onClick={() => onSelect(position)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+                selectedPosition === position
+                  ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {position}
+            </button>
+          ))}
+        </div>
+      )
+    }
+
   const getAvailableStatusUpdates = (currentStatus: string) => {
     switch(currentStatus) {
       case 'pending':

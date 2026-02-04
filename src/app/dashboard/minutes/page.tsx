@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { Search, Filter, FileText, Download, CheckCircle, Clock, AlertCircle, Plus, Eye, Edit, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import CreateMinutesModal from '@/components/minutes/create-minutes-modal'
+import ResponsiveTable from '@/components/ui/responsive-table'
 import { minutesService, type MinutesRecord } from '@/services/minutes'
 import { authService } from '@/services/auth'
 
@@ -86,6 +87,100 @@ export default function MinutesPage() {
   // Prevent hydration mismatch by returning null or a skeleton 
   // until the client-side code has taken over
   if (!mounted) return null
+
+  // Function to render each row
+  const renderRow = (record: MinutesRecord) => {
+    return (
+      <>
+        <td key="meeting" className="py-3 px-3 sm:py-4 sm:px-6">
+          <div>
+            <div className="font-medium text-gray-900 text-sm sm:text-base">
+              {record.title}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 mt-1">
+              <span>Session: {record.session}</span>
+              <span>•</span>
+              <span>{record.semester}</span>
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Created by: {record.createdBy?.name || 'Unknown'}
+            </div>
+          </div>
+        </td>
+        <td key="date" className="py-3 px-3 sm:py-4 sm:px-6">
+          <div className="text-xs sm:text-sm">
+            <div className="text-gray-900">{format(new Date(record.date), 'MMM d, yyyy')}</div>
+            <div className="text-gray-500">{record.time}</div>
+          </div>
+        </td>
+        <td key="venue" className="py-3 px-3 sm:py-4 sm:px-6">
+          <div className="text-xs sm:text-sm text-gray-900 max-w-[150px] truncate">
+            {record.venue}
+          </div>
+        </td>
+        <td key="status" className="py-3 px-3 sm:py-4 sm:px-6">
+          {record.approved ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+              <CheckCircle className="h-3 w-3" />
+              <span className="hidden sm:inline">Approved</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+              <Clock className="h-3 w-3" />
+              <span className="hidden sm:inline">Pending Review</span>
+            </span>
+          )}
+        </td>
+        <td key="actions" className="py-3 px-3 sm:py-4 sm:px-6">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button 
+              onClick={() => window.open(`/dashboard/minutes/${record.id}`, '_blank')}
+              className="p-1 sm:p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              title="View"
+            >
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
+            
+            {record.approved && (
+              <button 
+                onClick={() => window.open(`/api/minutes/${record.id}/download`, '_blank')}
+                className="p-1 sm:p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                title="Download PDF"
+              >
+                <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </button>
+            )}
+            
+            {currentUser?.role === 'ADMIN' && !record.approved && (
+              <>
+                <button 
+                  onClick={() => window.location.href = `/dashboard/minutes/edit/${record.id}`}
+                  className="p-1 sm:p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  title="Edit"
+                >
+                  <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
+                <button 
+                  onClick={() => handleApproveMinutes(record.id)}
+                  className="p-1 sm:p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                  title="Approve"
+                >
+                  <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
+                <button 
+                  onClick={() => handleDeleteMinutes(record.id)}
+                  className="p-1 sm:p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </td>
+      </>
+    )
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -182,127 +277,32 @@ export default function MinutesPage() {
         </button>
       </div>
 
-      {/* Minutes Table */}
-      <div className="bg-white rounded-lg sm:rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0d7c3d] mx-auto"></div>
-            <p className="text-gray-500 mt-2">Loading minutes...</p>
-          </div>
-        ) : filteredMinutes.length === 0 ? (
-          <div className="p-8 text-center">
-            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-gray-900 font-medium">No minutes found</h3>
-            <p className="text-gray-500 mt-1">Get started by adding your first meeting minutes</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="py-3 px-3 sm:py-4 sm:px-6 text-left text-xs font-semibold text-gray-900 uppercase">Meeting</th>
-                  <th className="py-3 px-3 sm:py-4 sm:px-6 text-left text-xs font-semibold text-gray-900 uppercase">Date & Time</th>
-                  <th className="py-3 px-3 sm:py-4 sm:px-6 text-left text-xs font-semibold text-gray-900 uppercase">Venue</th>
-                  <th className="py-3 px-3 sm:py-4 sm:px-6 text-left text-xs font-semibold text-gray-900 uppercase">Status</th>
-                  <th className="py-3 px-3 sm:py-4 sm:px-6 text-left text-xs font-semibold text-gray-900 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredMinutes.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3 px-3 sm:py-4 sm:px-6">
-                      <div>
-                        <div className="font-medium text-gray-900 text-sm sm:text-base">
-                          {record.title}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 mt-1">
-                          <span>Session: {record.session}</span>
-                          <span>•</span>
-                          <span>{record.semester}</span>
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          Created by: {record.createdBy?.name || 'Unknown'}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 sm:py-4 sm:px-6">
-                      <div className="text-xs sm:text-sm">
-                        <div className="text-gray-900">{format(new Date(record.date), 'MMM d, yyyy')}</div>
-                        <div className="text-gray-500">{record.time}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 sm:py-4 sm:px-6">
-                      <div className="text-xs sm:text-sm text-gray-900 max-w-[150px] truncate">
-                        {record.venue}
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 sm:py-4 sm:px-6">
-                      {record.approved ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
-                          <CheckCircle className="h-3 w-3" />
-                          <span className="hidden sm:inline">Approved</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-                          <Clock className="h-3 w-3" />
-                          <span className="hidden sm:inline">Pending Review</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-3 sm:py-4 sm:px-6">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <button 
-                          onClick={() => window.open(`/dashboard/minutes/${record.id}`, '_blank')}
-                          className="p-1 sm:p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                          title="View"
-                        >
-                          <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        </button>
-                        
-                        {record.approved && (
-                          <button 
-                            onClick={() => window.open(`/api/minutes/${record.id}/download`, '_blank')}
-                            className="p-1 sm:p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-                            title="Download PDF"
-                          >
-                            <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          </button>
-                        )}
-                        
-                        {currentUser?.role === 'ADMIN' && !record.approved && (
-                          <>
-                            <button 
-                              onClick={() => window.location.href = `/dashboard/minutes/edit/${record.id}`}
-                              className="p-1 sm:p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleApproveMinutes(record.id)}
-                              className="p-1 sm:p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-                              title="Approve"
-                            >
-                              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteMinutes(record.id)}
-                              className="p-1 sm:p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Minutes Table - USING RESPONSIVE TABLE */}
+      {loading ? (
+        <div className="bg-white rounded-lg sm:rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0d7c3d] mx-auto"></div>
+          <p className="text-gray-500 mt-2">Loading minutes...</p>
+        </div>
+      ) : filteredMinutes.length === 0 ? (
+        <div className="bg-white rounded-lg sm:rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+          <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-gray-900 font-medium">No minutes found</h3>
+          <p className="text-gray-500 mt-1">Get started by adding your first meeting minutes</p>
+        </div>
+      ) : (
+        <ResponsiveTable
+          headers={[
+            { key: 'meeting', label: 'Meeting', mobileLabel: 'Meeting' },
+            { key: 'date', label: 'Date & Time', mobileLabel: 'Date' },
+            { key: 'venue', label: 'Venue', mobileLabel: 'Venue' },
+            { key: 'status', label: 'Status', mobileLabel: 'Status' },
+            { key: 'actions', label: 'Actions', mobileLabel: 'Actions', className: 'text-right' }
+          ]}
+          data={filteredMinutes}
+          emptyMessage="No minutes found"
+          renderRow={renderRow}
+        />
+      )}
     </div>
   )
 }

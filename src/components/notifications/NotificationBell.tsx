@@ -1,8 +1,10 @@
+//C:\Users\SMC\Documents\GitHub\dept-exec-app\src\components\notifications\NotificationBell.tsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { Bell, CheckCircle, Check } from 'lucide-react'
 import { notificationsService, Notification } from '@/services/notifications'
+import { socketService } from '@/lib/socket'
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -10,16 +12,41 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Load notifications on mount and set up polling
   useEffect(() => {
+    // Initialize socket connection
+    socketService.connect()
+    
+    // Listen for real-time notifications
+    const handleNewNotification = (event: CustomEvent) => {
+      const newNotification = event.detail
+      setNotifications(prev => [newNotification, ...prev])
+      setUnreadCount(prev => prev + 1)
+      
+      // Show toast notification
+      showToast(newNotification.message)
+    }
+
+    window.addEventListener('new-notification', handleNewNotification as EventListener)
+    
     loadNotifications()
     
-    // Poll every 15 seconds for new notifications
-    const interval = setInterval(loadNotifications, 15000)
-    
-    // Cleanup
-    return () => clearInterval(interval)
+    return () => {
+      window.removeEventListener('new-notification', handleNewNotification as EventListener)
+    }
   }, [])
+
+  const showToast = (message: string) => {
+    // Create toast element
+    const toast = document.createElement('div')
+    toast.className = 'fixed top-4 right-4 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg z-[100] animate-slide-in'
+    toast.textContent = message
+    
+    document.body.appendChild(toast)
+    
+    setTimeout(() => {
+      toast.remove()
+    }, 5000)
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
