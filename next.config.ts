@@ -1,9 +1,8 @@
-// C:\Users\SMC\Documents\GitHub\dept-exec-app\next.config.ts
 import type { NextConfig } from "next";
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Base configuration without PWA (for development)
+// Base configuration with turbopack root setting
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   
@@ -17,6 +16,11 @@ const nextConfig: NextConfig = {
         pathname: '/uploads/**',
       },
     ],
+  },
+
+  // ✅ Explicitly set the Turbopack root to your project directory
+  turbopack: {
+    root: process.cwd(), // uses the current working directory (your project)
   },
 };
 
