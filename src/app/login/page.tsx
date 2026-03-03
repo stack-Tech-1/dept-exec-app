@@ -6,6 +6,11 @@ import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motio
 import { Mail, Lock, Eye, EyeOff, LogIn, Settings, BarChart2, Cpu, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/services/auth'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 
 /* ═══════════════════════════════════════════════════
    ANIMATED CIRCUIT / NODE CANVAS
@@ -189,96 +194,131 @@ function LoginFormInner() {
       : 'border-gray-100 hover:border-gray-200'}
   `
 
+  const inputWrapperClass = (name: string) =>
+    cn(
+      "relative",
+      focused === name &&
+        "after:content-[''] after:absolute after:inset-0 after:rounded-2xl after:shadow-[0_0_0_4px_rgba(13,124,61,0.09)]"
+    )
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Email */}
       <div className="space-y-1.5">
-        <label className="text-[11px] font-bold tracking-[0.14em] uppercase text-gray-400">
+        <Label 
+          htmlFor="email"
+          className="text-[11px] font-bold tracking-[0.14em] uppercase text-gray-400"
+        >
           Department Email
-        </label>
-        <div className="relative">
-          <Mail className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-200
-            ${focused === 'email' ? 'text-[#0d7c3d]' : 'text-gray-300'}`} />
-          <input
-            id="email" type="email" value={email}
+        </Label>
+        <div className={inputWrapperClass('email')}>
+          <Mail 
+            className={cn(
+              "absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-200 z-10",
+              focused === 'email' ? "text-[#0d7c3d]" : "text-gray-300"
+            )} 
+          />
+          <Input
+            id="email"
+            type="email"
+            value={email}
             onChange={e => setEmail(e.target.value)}
-            onFocus={() => setFocused('email')} onBlur={() => setFocused(null)}
+            onFocus={() => setFocused('email')}
+            onBlur={() => setFocused(null)}
             placeholder="executive@university.edu"
-            className={inputClass('email')} required
+            className={cn(
+              "pl-11 pr-4 py-3.5 rounded-2xl text-gray-800 text-sm font-medium",
+              "border-2 transition-all duration-250 bg-white placeholder:text-gray-300",
+              focused === 'email'
+                ? "border-[#0d7c3d] shadow-none"  // we moved shadow to wrapper
+                : "border-gray-100 hover:border-gray-200"
+            )}
+            required
           />
         </div>
       </div>
 
-      {/* Password */}
+      {/* Password – similar pattern */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] font-bold tracking-[0.14em] uppercase text-gray-400">Password</label>
-          <button type="button"
+          <Label 
+            htmlFor="password"
+            className="text-[11px] font-bold tracking-[0.14em] uppercase text-gray-400"
+          >
+            Password
+          </Label>
+          <button 
+            type="button"
             onClick={() => alert('Please contact department admin for password reset')}
-            className="text-xs text-[#0d7c3d] hover:text-[#0a5a2d] font-semibold transition-colors">
+            className="text-xs text-[#0d7c3d] hover:text-[#0a5a2d] font-semibold transition-colors"
+          >
             Forgot password?
           </button>
         </div>
-        <div className="relative">
-          <Lock className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-200
-            ${focused === 'password' ? 'text-[#0d7c3d]' : 'text-gray-300'}`} />
-          <input
-            id="password" type={showPassword ? 'text' : 'password'} value={password}
-            onChange={e => setPassword(e.target.value)}
-            onFocus={() => setFocused('password')} onBlur={() => setFocused(null)}
-            placeholder="••••••••"
-            className={`${inputClass('password')} pr-11`} required
+        <div className={inputWrapperClass('password')}>
+          <Lock 
+            className={cn(
+              "absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-200 z-10",
+              focused === 'password' ? "text-[#0d7c3d]" : "text-gray-300"
+            )} 
           />
-          <button type="button" onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors">
+          <Input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onFocus={() => setFocused('password')}
+            onBlur={() => setFocused(null)}
+            placeholder="••••••••"
+            className={cn(
+              "pl-11 pr-11 py-3.5 rounded-2xl text-gray-800 text-sm font-medium",
+              "border-2 transition-all duration-250 bg-white placeholder:text-gray-300",
+              focused === 'password'
+                ? "border-[#0d7c3d]"
+                : "border-gray-100 hover:border-gray-200"
+            )}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors z-10"
+          >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Error */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, y: -6, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-500 font-medium">
-              {error}
-            </div>
-          </motion.div>
+      {/* Remember me – using shadcn Checkbox */}
+      <div className="flex items-center space-x-2">
+      <Checkbox 
+          id="remember"
+          checked={rememberMe}
+          onCheckedChange={(checked: boolean | 'indeterminate') => 
+            setRememberMe(checked === true) 
+          }
+          className="border-gray-300 data-[state=checked]:bg-[#0d7c3d] data-[state=checked]:border-[#0d7c3d]"
+        />
+        <Label
+          htmlFor="remember"
+          className="text-sm font-medium leading-none text-gray-500 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+        >
+          Remember me
+        </Label>
+      </div>
+
+      {/* Submit – shadcn Button with your custom shine/gradient */}
+      <Button
+        type="submit"
+        disabled={loading}
+        className={cn(
+          "relative w-full overflow-hidden rounded-2xl py-4 font-bold text-white text-sm tracking-wide",
+          "bg-gradient-to-r from-[#0d7c3d] via-[#0e8f47] to-[#0a5a2d]",
+          "shadow-[0_8px_28px_rgba(13,124,61,0.32)]",
+          "disabled:opacity-60 disabled:cursor-not-allowed",
+          "transition-shadow duration-300 hover:shadow-[0_12px_40px_rgba(13,124,61,0.42)]",
+          "h-auto" // override default height
         )}
-      </AnimatePresence>
-
-      {/* Remember me */}
-      <label className="flex items-center gap-2.5 cursor-pointer group">
-        <div className="relative shrink-0">
-          <input type="checkbox" checked={rememberMe}
-            onChange={e => setRememberMe(e.target.checked)} className="sr-only" />
-          <div className={`w-4 h-4 rounded border-2 transition-all duration-200 flex items-center justify-center
-            ${rememberMe ? 'bg-[#0d7c3d] border-[#0d7c3d]' : 'border-gray-200 group-hover:border-[#0d7c3d]/40'}`}>
-            {rememberMe && (
-              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </div>
-        </div>
-        <span className="text-sm text-gray-500 font-medium">Remember me</span>
-      </label>
-
-      {/* Submit button */}
-      <motion.button
-        type="submit" disabled={loading}
-        whileHover={{ scale: loading ? 1 : 1.015, y: loading ? 0 : -1 }}
-        whileTap={{ scale: loading ? 1 : 0.98 }}
-        className="relative w-full overflow-hidden rounded-2xl py-4 font-bold text-white text-sm tracking-wide
-          bg-gradient-to-r from-[#0d7c3d] via-[#0e8f47] to-[#0a5a2d]
-          shadow-[0_8px_28px_rgba(13,124,61,0.32)]
-          disabled:opacity-60 disabled:cursor-not-allowed
-          transition-shadow duration-300 hover:shadow-[0_12px_40px_rgba(13,124,61,0.42)]"
       >
         {!loading && (
           <motion.div
@@ -290,8 +330,11 @@ function LoginFormInner() {
         <span className="relative flex items-center justify-center gap-2.5">
           {loading ? (
             <>
-              <motion.div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
+              <motion.div 
+                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+              />
               Authenticating…
             </>
           ) : (
@@ -301,7 +344,7 @@ function LoginFormInner() {
             </>
           )}
         </span>
-      </motion.button>
+      </Button>
     </form>
   )
 }
