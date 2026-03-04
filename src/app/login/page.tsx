@@ -425,7 +425,7 @@ export default function LoginPage() {
                 Industrial & Production Engineering
               </p>
               <h1 className="font-display text-white font-black leading-[1.03] mb-6"
-                style={{ fontSize: 'clamp(2.5rem, 3.8vw, 4rem)' }}>
+                style={{ fontSize: 'clamp(2.5rem, 3.8vw, 3rem)' }}>
                 Executive<br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-green-300 to-lime-400">
                   Management
@@ -487,7 +487,7 @@ export default function LoginPage() {
                 transition={{ duration: 0.55, delay: 0.45 }}
                 className="h-[3px] w-10 bg-gradient-to-r from-[#0d7c3d] to-emerald-400 rounded-full mb-6 origin-left"
               />
-              <h2 className="font-display text-[2.6rem] font-black text-gray-900 leading-[1.05] tracking-tight">
+              <h2 className="font-display text-[2rem] font-black text-gray-900 leading-[1.05] tracking-tight">
                 Welcome<br />back.
               </h2>
               <p className="mt-2.5 text-gray-400 text-sm font-medium">Sign in to your executive account</p>
