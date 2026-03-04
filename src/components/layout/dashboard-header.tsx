@@ -144,18 +144,17 @@ function MobileCommandPill() {
       </AnimatePresence>
 
       {/* The pill itself */}
+      <div className="fixed bottom-5 inset-x-0 z-[999] flex justify-center lg:hidden">
       <motion.div
         layout
         initial={{ y: 120 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 160, damping: 22, delay: 0.3 }}
-        className="fixed bottom-5 left-1/2 z-[999] lg:hidden"
-        style={{ x: '-50%' }}
       >
         <motion.div
           layout
           animate={{
-            width: expanded ? '88vw' : 'auto',
+            width: expanded ? 'min(88vw, 440px)' : 'auto',
             borderRadius: expanded ? 28 : 50,
           }}
           transition={{ type: 'spring', stiffness: 240, damping: 28 }}
@@ -166,7 +165,7 @@ function MobileCommandPill() {
               ? '0 -8px 60px rgba(13,124,61,0.35), 0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)'
               : '0 8px 32px rgba(13,124,61,0.3), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.06)',
-            maxWidth: '440px',
+            //maxWidth: '440px',
           }}
         >
           {/* Top green shimmer line */}
@@ -349,6 +348,7 @@ function MobileCommandPill() {
           </AnimatePresence>
         </motion.div>
       </motion.div>
+      </div>
     </>
   )
 }
