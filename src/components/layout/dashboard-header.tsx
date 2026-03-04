@@ -437,7 +437,7 @@ function MobileTopBar() {
       <div className="w-10" />
   
       {/* Centre: page label */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center ml-12">
         <p
           className="text-sm font-bold text-gray-900"
           style={{ fontFamily: 'Syne, sans-serif' }}
