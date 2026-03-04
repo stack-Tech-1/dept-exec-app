@@ -1,8 +1,12 @@
-// C:\Users\SMC\Documents\GitHub\dept-exec-app\src\components\goals\create-goal-modal.tsx
+// src/components/goals/create-goal-modal.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Target, Flag, Tag, Users, DollarSign, BarChart, FileText, Plus, Minus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  X, Calendar, Target, Flag, Tag, Users, DollarSign,
+  BarChart, FileText, Plus, Minus, CheckCircle
+} from 'lucide-react'
 import { userService, type User } from '@/services/user'
 
 interface CreateGoalModalProps {
@@ -10,6 +14,42 @@ interface CreateGoalModalProps {
   onClose: () => void
   onCreateGoal: (data: any) => Promise<void>
 }
+
+/* ─── Shared input style ─────────────────────────── */
+const inp = `w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.09]
+  text-white text-sm placeholder:text-white/18 outline-none
+  focus:border-emerald-500/45 focus:bg-white/[0.08] transition-all duration-200`
+
+function SectionHeader({ Icon, label }: { Icon: any; label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-4">
+      <div className="w-7 h-7 rounded-lg bg-[#0d7c3d]/20 border border-[#0d7c3d]/25 flex items-center justify-center">
+        <Icon className="w-3.5 h-3.5 text-emerald-400" />
+      </div>
+      <h3 className="text-sm font-black text-white/80" style={{ fontFamily: 'Syne, sans-serif' }}>{label}</h3>
+    </div>
+  )
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <p className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/32 mb-1.5">{children}</p>
+}
+
+const CATEGORIES = [
+  { value: 'academic',       label: 'Academic',       accent: '#a78bfa', cls: 'border-violet-500/45 bg-violet-500/12 text-violet-300' },
+  { value: 'administrative', label: 'Admin',          accent: '#60a5fa', cls: 'border-sky-500/45 bg-sky-500/12 text-sky-300' },
+  { value: 'social',         label: 'Social',         accent: '#f472b6', cls: 'border-pink-500/45 bg-pink-500/12 text-pink-300' },
+  { value: 'infrastructure', label: 'Infrastructure', accent: '#f59e0b', cls: 'border-amber-500/45 bg-amber-500/12 text-amber-300' },
+  { value: 'other',          label: 'Other',          accent: '#9ca3af', cls: 'border-white/25 bg-white/[0.06] text-white/50' },
+]
+const PRIORITIES = [
+  { value: 'low',      label: 'Low',      accent: '#6b7280', cls: 'border-white/20 bg-white/[0.04] text-white/40' },
+  { value: 'medium',   label: 'Medium',   accent: '#f59e0b', cls: 'border-amber-500/45 bg-amber-500/12 text-amber-300' },
+  { value: 'high',     label: 'High',     accent: '#f43f5e', cls: 'border-rose-500/45 bg-rose-500/12 text-rose-300' },
+  { value: 'critical', label: 'Critical', accent: '#ef4444', cls: 'border-red-500/55 bg-red-500/18 text-red-300' },
+]
+const AVATAR_COLORS = ['#3b82f6','#10b981','#a78bfa','#f472b6','#f59e0b','#34d399','#60a5fa']
+const getColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
 
 export default function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalModalProps) {
   const [title, setTitle] = useState('')
@@ -26,539 +66,342 @@ export default function CreateGoalModal({ isOpen, onClose, onCreateGoal }: Creat
   const [tagInput, setTagInput] = useState('')
   const [executives, setExecutives] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
-  const [loadingExecutives, setLoadingExecutives] = useState(false)
+  const [loadingExecs, setLoadingExecs] = useState(false)
+  const [done, setDone] = useState(false)
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchExecutives()
-    }
-  }, [isOpen])
+  useEffect(() => { if (isOpen) fetchExecs() }, [isOpen])
 
-  const fetchExecutives = async () => {
+  const fetchExecs = async () => {
     try {
-      setLoadingExecutives(true)
+      setLoadingExecs(true)
       const data = await userService.getAllUsers()
-      const execs = data.filter(user => user.role === 'EXEC' && user.isActive)
-      setExecutives(execs)
-    } catch (error) {
-      console.error('Failed to fetch executives:', error)
-    } finally {
-      setLoadingExecutives(false)
-    }
+      setExecutives(data.filter(u => u.role === 'EXEC' && u.isActive))
+    } catch (e) { console.error(e) }
+    finally { setLoadingExecs(false) }
+  }
+
+  const resetForm = () => {
+    setTitle(''); setDescription(''); setCategory('administrative'); setTargetDate('')
+    setPriority('medium'); setDepartment('IPE Department'); setAssignedTo([])
+    setKpis([]); setBudget({ allocated: 0, currency: 'NGN' }); setMilestones([])
+    setTags([]); setTagInput('')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title || !targetDate) {
-      alert('Please fill in all required fields')
-      return
-    }
-
+    if (!title || !targetDate) return
     setLoading(true)
     try {
-      const goalData = {
-        title,
-        description,
-        category,
-        targetDate,
-        priority,
-        department,
-        assignedTo,
-        kpis: kpis.filter(kpi => kpi.name && kpi.target > 0),
-        budget,
-        milestones: milestones.filter(m => m.title && m.targetDate),
-        tags
-      }
-
-      await onCreateGoal(goalData)
-      resetForm()
-      onClose()
-    } catch (error) {
-      console.error('Error creating goal:', error)
-      alert('Failed to create goal. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+      await onCreateGoal({ title, description, category, targetDate, priority, department, assignedTo, kpis: kpis.filter(k => k.name && k.target > 0), budget, milestones: milestones.filter(m => m.title && m.targetDate), tags })
+      setDone(true)
+      setTimeout(() => { resetForm(); setDone(false); onClose() }, 800)
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
   }
 
-  const resetForm = () => {
-    setTitle('')
-    setDescription('')
-    setCategory('administrative')
-    setTargetDate('')
-    setPriority('medium')
-    setDepartment('IPE Department')
-    setAssignedTo([])
-    setKpis([])
-    setBudget({ allocated: 0, currency: 'NGN' })
-    setMilestones([])
-    setTags([])
-    setTagInput('')
-  }
+  const toggleAssignee = (id: string) => setAssignedTo(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
-  const handleAddKpi = () => {
-    setKpis([...kpis, { name: '', target: 0, unit: '' }])
-  }
-
-  const handleUpdateKpi = (index: number, field: string, value: string | number) => {
-    const updatedKpis = [...kpis]
-    updatedKpis[index] = { ...updatedKpis[index], [field]: value }
-    setKpis(updatedKpis)
-  }
-
-  const handleRemoveKpi = (index: number) => {
-    setKpis(kpis.filter((_, i) => i !== index))
-  }
-
-  const handleAddMilestone = () => {
-    setMilestones([...milestones, { title: '', description: '', targetDate: '' }])
-  }
-
-  const handleUpdateMilestone = (index: number, field: string, value: string) => {
-    const updatedMilestones = [...milestones]
-    updatedMilestones[index] = { ...updatedMilestones[index], [field]: value }
-    setMilestones(updatedMilestones)
-  }
-
-  const handleRemoveMilestone = (index: number) => {
-    setMilestones(milestones.filter((_, i) => i !== index))
-  }
-
-  const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()])
-      setTagInput('')
-    }
-  }
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove))
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault()
-      handleAddTag()
-    }
-  }
-
-  const toggleAssignee = (userId: string) => {
-    if (assignedTo.includes(userId)) {
-      setAssignedTo(assignedTo.filter(id => id !== userId))
-    } else {
-      setAssignedTo([...assignedTo, userId])
-    }
-  }
-
-  const categories = [
-    { value: 'academic', label: 'Academic', color: 'bg-purple-100 text-purple-700' },
-    { value: 'administrative', label: 'Administrative', color: 'bg-blue-100 text-blue-700' },
-    { value: 'social', label: 'Social', color: 'bg-pink-100 text-pink-700' },
-    { value: 'infrastructure', label: 'Infrastructure', color: 'bg-amber-100 text-amber-700' },
-    { value: 'other', label: 'Other', color: 'bg-gray-100 text-gray-700' },
-  ]
-
-  const priorities = [
-    { value: 'low', label: 'Low', color: 'bg-emerald-100 text-emerald-700' },
-    { value: 'medium', label: 'Medium', color: 'bg-blue-100 text-blue-700' },
-    { value: 'high', label: 'High', color: 'bg-amber-100 text-amber-700' },
-    { value: 'critical', label: 'Critical', color: 'bg-rose-100 text-rose-700' },
-  ]
-
-  if (!isOpen) return null
+  const addTag = () => { if (tagInput.trim() && !tags.includes(tagInput.trim())) { setTags(p => [...p, tagInput.trim()]); setTagInput('') } }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Create New Goal</h2>
-            <p className="text-sm text-gray-600 mt-1">Define a new department objective</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(3,10,5,0.84)', backdropFilter: 'blur(10px)' }}
+          onClick={e => { if (e.target === e.currentTarget) onClose() }}>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[70vh]">
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Target className="h-5 w-5 text-[#0d7c3d]" />
-                Basic Information
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Goal Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                    placeholder="e.g., Department Orientation 2025"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Target Date *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="date"
-                      value={targetDate}
-                      onChange={(e) => setTargetDate(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                      required
-                    />
-                  </div>
-                </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.93, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.93, y: 24 }}
+            transition={{ type: 'spring', stiffness: 255, damping: 26 }}
+            className="w-full max-w-4xl rounded-3xl overflow-hidden"
+            style={{
+              background: 'linear-gradient(145deg, #07150f 0%, #0a1c11 100%)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              boxShadow: '0 28px 80px rgba(0,0,0,0.72), 0 0 0 1px rgba(13,124,61,0.12)',
+            }}>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Category
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.value}
-                        type="button"
-                        onClick={() => setCategory(cat.value)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          category === cat.value 
-                            ? cat.color 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Priority
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {priorities.map((prio) => (
-                      <button
-                        key={prio.value}
-                        type="button"
-                        onClick={() => setPriority(prio.value)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-                          priority === prio.value 
-                            ? prio.color 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        <Flag className="h-3 w-3" />
-                        {prio.label}
-                      </button>
-                    ))}
-                  </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-7 py-5 border-b border-white/[0.05]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#0d7c3d]/18 border border-[#0d7c3d]/25 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-emerald-400" />
                 </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm h-32"
-                    placeholder="Describe the goal, its purpose, and expected outcomes..."
-                  />
+                <div>
+                  <h2 className="text-base font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>Create New Goal</h2>
+                  <p className="text-[11px] text-white/30">Define a new department objective</p>
                 </div>
               </div>
+              <motion.button whileTap={{ scale: 0.88, rotate: 90 }} onClick={onClose}
+                className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/35 hover:text-white/65 transition-colors">
+                <X className="w-4 h-4" />
+              </motion.button>
             </div>
 
-            {/* Assignees */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-[#0d7c3d]" />
-                Assignees
-              </h3>
-              
-              {loadingExecutives ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0d7c3d] mx-auto"></div>
-                  <p className="text-sm text-gray-500 mt-2">Loading executives...</p>
-                </div>
-              ) : executives.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No executives found</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {executives.map((exec) => (
-                    <div
-                      key={exec.id}
-                      className={`p-3 rounded-xl border cursor-pointer transition-colors ${
-                        assignedTo.includes(exec.id)
-                          ? 'border-[#0d7c3d] bg-[#0d7c3d]/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => toggleAssignee(exec.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] flex items-center justify-center text-white font-bold">
-                          {exec.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{exec.name}</div>
-                          <div className="text-sm text-gray-600">{exec.position}</div>
-                        </div>
-                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${
-                          assignedTo.includes(exec.id)
-                            ? 'bg-[#0d7c3d] border-[#0d7c3d]'
-                            : 'bg-white border-gray-300'
-                        }`}>
-                          {assignedTo.includes(exec.id) && (
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
-                          )}
-                        </div>
+            {/* Scrollable form */}
+            <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[75vh]">
+              <div className="px-7 py-6 space-y-8">
+
+                {/* ── Basic Info ── */}
+                <div>
+                  <SectionHeader Icon={Target} label="Basic Information" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Goal Title *</Label>
+                      <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+                        placeholder="e.g., Department Orientation 2025"
+                        className={inp} required />
+                    </div>
+                    <div>
+                      <Label>Target Date *</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/45" />
+                        <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)}
+                          className={`${inp} pl-10`} required />
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {/* Key Performance Indicators (KPIs) */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <BarChart className="h-5 w-5 text-[#0d7c3d]" />
-                Key Performance Indicators
-              </h3>
-              
-              <div className="space-y-3">
-                {kpis.map((kpi, index) => (
-                  <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 rounded-xl">
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                      <input
-                        type="text"
-                        value={kpi.name}
-                        onChange={(e) => handleUpdateKpi(index, 'name', e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                        placeholder="KPI Name"
-                      />
-                      <input
-                        type="number"
-                        value={kpi.target}
-                        onChange={(e) => handleUpdateKpi(index, 'target', parseFloat(e.target.value) || 0)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                        placeholder="Target Value"
-                      />
-                      <input
-                        type="text"
-                        value={kpi.unit}
-                        onChange={(e) => handleUpdateKpi(index, 'unit', e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                        placeholder="Unit (e.g., %, NGN, students)"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveKpi(index)}
-                      className="p-2 text-gray-400 hover:text-red-600"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-                
-                <button
-                  type="button"
-                  onClick={handleAddKpi}
-                  className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:text-[#0d7c3d] hover:border-[#0d7c3d]/30 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add KPI
-                </button>
-              </div>
-            </div>
-
-            {/* Budget */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-[#0d7c3d]" />
-                Budget
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Allocated Budget
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="number"
-                      value={budget.allocated}
-                      onChange={(e) => setBudget({ ...budget, allocated: parseFloat(e.target.value) || 0 })}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Currency
-                  </label>
-                  <select
-                    value={budget.currency}
-                    onChange={(e) => setBudget({ ...budget, currency: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                  >
-                    <option value="NGN">NGN - Nigerian Naira</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="GBP">GBP - British Pound</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Milestones */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-[#0d7c3d]" />
-                Milestones
-              </h3>
-              
-              <div className="space-y-3">
-                {milestones.map((milestone, index) => (
-                  <div key={index} className="p-4 bg-gray-50 rounded-xl space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={milestone.title}
-                          onChange={(e) => handleUpdateMilestone(index, 'title', e.target.value)}
-                          className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                          placeholder="Milestone Title"
-                        />
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                          <input
-                            type="date"
-                            value={milestone.targetDate}
-                            onChange={(e) => handleUpdateMilestone(index, 'targetDate', e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                          />
-                        </div>
+                    {/* Category tiles */}
+                    <div>
+                      <Label>Category</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {CATEGORIES.map(c => (
+                          <motion.button key={c.value} type="button" whileTap={{ scale: 0.93 }}
+                            onClick={() => setCategory(c.value)}
+                            className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200
+                              ${category === c.value ? c.cls : 'border-white/[0.07] bg-white/[0.03] text-white/35 hover:text-white/55 hover:bg-white/[0.05]'}`}>
+                            {c.label}
+                          </motion.button>
+                        ))}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMilestone(index)}
-                        className="p-2 text-gray-400 hover:text-red-600 ml-2"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
                     </div>
-                    <textarea
-                      value={milestone.description}
-                      onChange={(e) => handleUpdateMilestone(index, 'description', e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                      placeholder="Milestone description..."
-                      rows={2}
-                    />
-                  </div>
-                ))}
-                
-                <button
-                  type="button"
-                  onClick={handleAddMilestone}
-                  className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:text-[#0d7c3d] hover:border-[#0d7c3d]/30 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Milestone
-                </button>
-              </div>
-            </div>
 
-            {/* Tags */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Tag className="h-5 w-5 text-[#0d7c3d]" />
-                Tags
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-sm"
-                    placeholder="Add a tag (e.g., orientation, accreditation, social)"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddTag}
-                    className="px-4 py-2.5 bg-[#0d7c3d] text-white font-medium rounded-xl hover:bg-[#0d7c3d]/90 transition-colors text-sm"
-                  >
-                    Add
-                  </button>
+                    {/* Priority tiles */}
+                    <div>
+                      <Label>Priority</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {PRIORITIES.map(p => (
+                          <motion.button key={p.value} type="button" whileTap={{ scale: 0.93 }}
+                            onClick={() => setPriority(p.value)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all duration-200
+                              ${priority === p.value ? p.cls : 'border-white/[0.07] bg-white/[0.03] text-white/35 hover:text-white/55'}`}>
+                            <Flag className="w-2.5 h-2.5" />
+                            {p.label}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <Label>Description</Label>
+                      <textarea value={description} onChange={e => setDescription(e.target.value)}
+                        rows={3} placeholder="Describe the goal, its purpose, and expected outcomes…"
+                        className={`${inp} resize-none`} />
+                    </div>
+                  </div>
                 </div>
-                
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map((tag, index) => (
-                      <div
-                        key={index}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#0d7c3d]/10 text-[#0d7c3d] rounded-lg text-sm"
-                      >
-                        <span>{tag}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTag(tag)}
-                          className="text-[#0d7c3d] hover:text-[#0a5a2d]"
-                        >
-                          <X className="h-3 w-3" />
+
+                {/* ── Assignees ── */}
+                <div>
+                  <SectionHeader Icon={Users} label="Assignees" />
+                  {loadingExecs ? (
+                    <div className="flex items-center gap-3 text-white/30 text-sm">
+                      <motion.div className="w-4 h-4 border-2 border-white/20 border-t-white/50 rounded-full"
+                        animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} />
+                      Loading executives…
+                    </div>
+                  ) : executives.length === 0 ? (
+                    <p className="text-white/25 text-sm">No executives found</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {executives.map(exec => {
+                        const color = getColor(exec.name)
+                        const selected = assignedTo.includes(exec.id)
+                        return (
+                          <motion.div key={exec.id} whileTap={{ scale: 0.97 }}
+                            onClick={() => toggleAssignee(exec.id)}
+                            className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all duration-200
+                              ${selected ? 'border-[1.5px]' : 'border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                            style={selected ? { borderColor: color, background: color + '12', boxShadow: `0 4px 16px ${color}20` } : {}}>
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0"
+                              style={{ background: color + '22', border: `1.5px solid ${color}38`, color }}>
+                              {exec.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-white/80 truncate">{exec.name}</p>
+                              <p className="text-[11px] text-white/30 truncate">{exec.position}</p>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selected ? 'border-none' : 'border-white/15 bg-transparent'}`}
+                              style={selected ? { background: color } : {}}>
+                              {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── KPIs ── */}
+                <div>
+                  <SectionHeader Icon={BarChart} label="Key Performance Indicators" />
+                  <div className="space-y-2.5">
+                    {kpis.map((kpi, idx) => (
+                      <div key={idx} className="flex gap-2 items-center p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                          {[
+                            { val: kpi.name, ph: 'KPI Name', onChange: (v: string) => { const k=[...kpis]; k[idx]={...k[idx],name:v}; setKpis(k) }, type: 'text' },
+                            { val: kpi.target, ph: 'Target Value', onChange: (v: string) => { const k=[...kpis]; k[idx]={...k[idx],target:parseFloat(v)||0}; setKpis(k) }, type: 'number' },
+                            { val: kpi.unit, ph: 'Unit (%, NGN…)', onChange: (v: string) => { const k=[...kpis]; k[idx]={...k[idx],unit:v}; setKpis(k) }, type: 'text' },
+                          ].map((f, fi) => (
+                            <input key={fi} type={f.type} value={f.val as any} onChange={e => f.onChange(e.target.value)}
+                              placeholder={f.ph} className={inp} />
+                          ))}
+                        </div>
+                        <button type="button" onClick={() => setKpis(kpis.filter((_,i)=>i!==idx))}
+                          className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition-colors shrink-0">
+                          <Minus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
+                    <button type="button" onClick={() => setKpis([...kpis, { name:'', target:0, unit:'' }])}
+                      className="w-full py-2.5 rounded-xl border-2 border-dashed border-white/[0.08] text-white/30 hover:text-emerald-400 hover:border-emerald-500/25 transition-colors text-sm font-semibold flex items-center justify-center gap-2">
+                      <Plus className="w-4 h-4" />Add KPI
+                    </button>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
+                </div>
 
-          {/* Footer */}
-          <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors text-sm"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white font-medium rounded-xl hover:shadow-lg hover:shadow-[#0d7c3d]/20 transition-all text-sm disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create Goal'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+                {/* ── Budget ── */}
+                <div>
+                  <SectionHeader Icon={DollarSign} label="Budget" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Allocated Budget</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/45" />
+                        <input type="number" value={budget.allocated} min="0" step="0.01"
+                          onChange={e => setBudget({...budget, allocated: parseFloat(e.target.value)||0})}
+                          className={`${inp} pl-10`} placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Currency</Label>
+                      <select value={budget.currency} onChange={e => setBudget({...budget, currency: e.target.value})}
+                        className={`${inp} appearance-none cursor-pointer`}>
+                        {['NGN - Nigerian Naira','USD - US Dollar','EUR - Euro','GBP - British Pound'].map(c => (
+                          <option key={c} value={c.split(' ')[0]} className="bg-[#07150f]">{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Milestones ── */}
+                <div>
+                  <SectionHeader Icon={FileText} label="Milestones" />
+                  <div className="space-y-2.5">
+                    {milestones.map((m, idx) => (
+                      <div key={idx} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input type="text" value={m.title}
+                              onChange={e => { const ms=[...milestones]; ms[idx]={...ms[idx],title:e.target.value}; setMilestones(ms) }}
+                              placeholder="Milestone Title" className={inp} />
+                            <div className="relative">
+                              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/40" />
+                              <input type="date" value={m.targetDate}
+                                onChange={e => { const ms=[...milestones]; ms[idx]={...ms[idx],targetDate:e.target.value}; setMilestones(ms) }}
+                                className={`${inp} pl-10`} />
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => setMilestones(milestones.filter((_,i)=>i!==idx))}
+                            className="w-7 h-7 mt-0.5 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition-colors shrink-0">
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <textarea value={m.description} rows={2}
+                          onChange={e => { const ms=[...milestones]; ms[idx]={...ms[idx],description:e.target.value}; setMilestones(ms) }}
+                          placeholder="Milestone description…" className={`${inp} resize-none`} />
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setMilestones([...milestones, {title:'',description:'',targetDate:''}])}
+                      className="w-full py-2.5 rounded-xl border-2 border-dashed border-white/[0.08] text-white/30 hover:text-emerald-400 hover:border-emerald-500/25 transition-colors text-sm font-semibold flex items-center justify-center gap-2">
+                      <Plus className="w-4 h-4" />Add Milestone
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── Tags ── */}
+                <div>
+                  <SectionHeader Icon={Tag} label="Tags" />
+                  <div className="flex gap-2 mb-3">
+                    <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
+                      placeholder="Add a tag and press Enter…" className={`${inp} flex-1`} />
+                    <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={addTag}
+                      className="px-4 py-2.5 rounded-xl bg-[#0d7c3d]/80 border border-[#0d7c3d]/40 text-white text-sm font-bold hover:bg-[#0d7c3d] transition-colors">
+                      Add
+                    </motion.button>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((t, i) => (
+                        <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#0d7c3d]/15 border border-[#0d7c3d]/25 text-emerald-400 text-[11px] font-semibold">
+                          {t}
+                          <button type="button" onClick={() => setTags(tags.filter(x => x !== t))}
+                            className="text-emerald-400/60 hover:text-emerald-400">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 px-7 py-5 border-t border-white/[0.05]">
+                <button type="button" onClick={onClose} disabled={loading}
+                  className="flex-1 py-3 rounded-2xl border border-white/[0.09] text-white/45 text-sm font-semibold hover:text-white/70 hover:border-white/18 transition-colors">
+                  Cancel
+                </button>
+                <motion.button type="submit" disabled={loading}
+                  whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
+                  className="flex-1 relative overflow-hidden py-3 rounded-2xl
+                    bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white text-sm font-bold
+                    shadow-[0_8px_24px_rgba(13,124,61,0.35)] disabled:opacity-50 disabled:cursor-not-allowed
+                    hover:shadow-[0_12px_32px_rgba(13,124,61,0.45)] transition-shadow">
+                  {!loading && <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12"
+                    animate={{ x: ['-100%', '200%'] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5 }} />}
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <AnimatePresence mode="wait">
+                      {done ? (
+                        <motion.span key="done" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" />Goal Created!
+                        </motion.span>
+                      ) : loading ? (
+                        <motion.span key="spin" className="flex items-center gap-2">
+                          <motion.div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                            animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
+                          Creating…
+                        </motion.span>
+                      ) : (
+                        <motion.span key="idle" className="flex items-center gap-2">
+                          <Plus className="w-4 h-4" />Create Goal
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </span>
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
