@@ -1,46 +1,76 @@
-// C:\Users\SMC\Documents\GitHub\dept-exec-app\src\app\dashboard\users\page.tsx
+// src/app/dashboard/users/page.tsx
 'use client'
+
 import { useState, useEffect } from 'react'
-import InviteModal from '@/components/users/invite-modal'
-import { 
-  Users, 
-  UserPlus, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
-  Mail,
-  Shield,
-  Building,
-  Briefcase,
-  Calendar
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Users, UserPlus, Search, ChevronDown, MoreVertical,
+  Edit, Trash2, Mail, Shield, Building, Briefcase, Calendar, X, AlertCircle
 } from 'lucide-react'
+import InviteModal from '@/components/users/invite-modal'
 import ProfileModal from '@/components/users/profile-modal'
 import { authService } from '@/services/auth'
-import userService from '@/services/user'
 import API from '@/services/api'
 
 interface User {
-  id: string
-  _id: string
-  name: string
-  email: string
-  role: 'ADMIN' | 'EXEC'
-  department: string
-  position: string
-  isActive: boolean
-  lastLogin: string
-  createdAt: string
-  updatedAt: string
+  id: string; _id: string; name: string; email: string
+  role: 'ADMIN' | 'EXEC'; department: string; position: string
+  isActive: boolean; lastLogin: string; createdAt: string; updatedAt: string
 }
 
-interface UsersResponse {
-  success: boolean;
-  count: number;
-  users: User[];
+/* ─── Count-up number ────────────────────────────── */
+function CountUp({ value, color }: { value: number; color: string }) {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    let i = 0; const steps = 24; const inc = value / steps
+    const t = setInterval(() => { i += inc; if (i >= value) { setCount(value); clearInterval(t) } else setCount(Math.floor(i)) }, 42)
+    return () => clearInterval(t)
+  }, [value])
+  return <span style={{ color }}>{count}</span>
 }
 
+/* ─── Avatar with initials ───────────────────────── */
+function Avatar({ name, color, size = 9 }: { name: string; color: string; size?: number }) {
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  return (
+    <div className={`w-${size} h-${size} rounded-full flex items-center justify-center font-black text-sm shrink-0`}
+      style={{ background: color + '22', border: `1.5px solid ${color}38`, color, width: size * 4, height: size * 4, fontSize: size < 10 ? 12 : 14 }}>
+      {initials}
+    </div>
+  )
+}
+
+/* ─── Role chip ──────────────────────────────────── */
+function RoleChip({ role }: { role: string }) {
+  return role === 'ADMIN'
+    ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-violet-400/10 text-violet-400 border border-violet-400/20">
+        <Shield className="w-2.5 h-2.5" />Admin
+      </span>
+    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-400/10 text-sky-400 border border-sky-400/20">
+        <Briefcase className="w-2.5 h-2.5" />Executive
+      </span>
+}
+
+/* ─── Active status chip ─────────────────────────── */
+function StatusChip({ isActive }: { isActive: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border
+      ${isActive ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20' : 'bg-white/[0.04] text-white/30 border-white/[0.07]'}`}>
+      <span className="relative flex w-1.5 h-1.5">
+        {isActive && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />}
+        <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-white/20'}`} />
+      </span>
+      {isActive ? 'Active' : 'Inactive'}
+    </span>
+  )
+}
+
+const AVATAR_COLORS = ['#3b82f6','#10b981','#a78bfa','#f472b6','#f59e0b','#34d399','#60a5fa','#f87171']
+const getUserColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
+
+const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Never'
+
+/* ═══════════════════════════════════════════════════ ROOT ═══ */
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,46 +78,24 @@ export default function UsersPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'ADMIN' | 'EXEC'>('ALL')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [positionFilter, setPositionFilter] = useState('ALL')
   const [showUserMenu, setShowUserMenu] = useState<string | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<User | null>(null)
-  const [positionFilter, setPositionFilter] = useState('ALL')
-  const positions = Array.from(new Set(users.map(u => u.position).filter(Boolean))).sort()
 
   const currentUser = authService.getCurrentUser()
+  const positions = Array.from(new Set(users.map(u => u.position).filter(Boolean))).sort()
 
-  useEffect(() => {
-    fetchUsers()
-  }, [])
+  useEffect(() => { fetchUsers() }, [])
 
   const fetchUsers = async () => {
     try {
-      setLoading(true)
-      setError('')
-      const response = await API.get('/users')
-      console.log('API Response:', response) // Debug log
-      const data = response as any as UsersResponse;
-      
-      // Transform backend data to match frontend User type
-      const transformedUsers = data.users?.map(user => ({
-        id: user._id, // Map _id to id
-        _id: user._id, // Keep original for compatibility
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        department: user.department,
-        position: user.position,
-        isActive: user.isActive,
-        lastLogin: user.lastLogin,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt || user.createdAt
-      })) || [];
-      
-      setUsers(transformedUsers)
+      setLoading(true); setError('')
+      const response = await API.get('/users') as any
+      const transformed = response.users?.map((u: any) => ({ ...u, id: u._id })) || []
+      setUsers(transformed)
     } catch (err: any) {
-      console.error('Error fetching users:', err)
       setError(err.message || 'Failed to load users')
     } finally {
       setLoading(false)
@@ -96,425 +104,290 @@ export default function UsersPage() {
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return
-    
     try {
       await API.delete(`/users/${userId}`)
-      setUsers(users.filter(user => user._id !== userId))
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete user')
-    }
+      setUsers(users.filter(u => u._id !== userId))
+    } catch (err: any) { alert(err.message || 'Failed to delete user') }
   }
 
-  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+  const handleToggleStatus = async (userId: string, current: boolean) => {
     try {
-      await API.put(`/users/${userId}`, { isActive: !currentStatus })
-      setUsers(users.map(user => 
-        user._id === userId ? { ...user, isActive: !currentStatus } : user
-      ))
-    } catch (err: any) {
-      alert(err.message || 'Failed to update user status')
-    }
+      await API.put(`/users/${userId}`, { isActive: !current })
+      setUsers(users.map(u => u._id === userId ? { ...u, isActive: !current } : u))
+    } catch (err: any) { alert(err.message || 'Failed to update status') }
   }
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.department.toLowerCase().includes(search.toLowerCase()) ||
-      user.position.toLowerCase().includes(search.toLowerCase())
-    
-    const matchesRole = roleFilter === 'ALL' || user.role === roleFilter
-    const matchesStatus = statusFilter === 'ALL' || 
-      (statusFilter === 'ACTIVE' && user.isActive) ||
-      (statusFilter === 'INACTIVE' && !user.isActive)
-    
-      const matchesPosition = positionFilter === 'ALL' || user.position === positionFilter
-  
-      return matchesSearch && matchesRole && matchesStatus && matchesPosition
-    })
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  const getRoleBadgeColor = (role: string) => {
-    return role === 'ADMIN' 
-      ? 'bg-purple-100 text-purple-800 border-purple-200'
-      : 'bg-blue-100 text-blue-800 border-blue-200'
-  }
-
-  const getStatusBadgeColor = (isActive: boolean) => {
-    return isActive
-      ? 'bg-green-100 text-green-800 border-green-200'
-      : 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-
-  // Add this function to handle profile edit
   const handleEditProfile = (user: User) => {
     setSelectedUserForEdit(user)
     setShowProfileModal(true)
-    setShowUserMenu(null) // Close the menu
+    setShowUserMenu(null)
   }
 
-  // Add this function to handle user updates
-  const handleUserUpdated = () => {
-    fetchUsers() // Refresh the user list
-  }
+  const filteredUsers = users.filter(u => {
+    const ms = search === '' || [u.name, u.email, u.department, u.position].some(f => f?.toLowerCase().includes(search.toLowerCase()))
+    const mr = roleFilter === 'ALL' || u.role === roleFilter
+    const mst = statusFilter === 'ALL' || (statusFilter === 'ACTIVE' ? u.isActive : !u.isActive)
+    const mp = positionFilter === 'ALL' || u.position === positionFilter
+    return ms && mr && mst && mp
+  })
+
+  const statCards = [
+    { value: users.length, label: 'Total Members', color: '#e5e7eb', Icon: Users },
+    { value: users.filter(u => u.role === 'ADMIN').length, label: 'Administrators', color: '#a78bfa', Icon: Shield },
+    { value: users.filter(u => u.role === 'EXEC').length, label: 'Executives', color: '#60a5fa', Icon: Briefcase },
+    { value: users.filter(u => u.isActive).length, label: 'Active Now', color: '#10b981', Icon: Building },
+  ]
+
+  const selCls = `appearance-none pl-3.5 pr-8 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08]
+    text-white/60 text-sm outline-none focus:border-emerald-500/40 transition-all cursor-pointer`
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#0d7c3d]"></div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <motion.div className="w-10 h-10 rounded-full border-2 border-[#0d7c3d]/20 border-t-[#0d7c3d]"
+          animate={{ rotate: 360 }} transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }} />
       </div>
     )
   }
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
-            <Users className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
-            <span>Department Members</span>
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage all department executives and administrators
-          </p>
-        </div>
-        
-        {currentUser?.role === 'ADMIN' && (
-          <button 
-            onClick={() => setShowInviteModal(true)}
-            className="bg-[#0d7c3d] hover:bg-[#0a5a2d] text-white font-semibold py-2 px-3 sm:py-2.5 sm:px-5 rounded-lg sm:rounded-xl flex items-center gap-1.5 sm:gap-2 transition-all duration-200 shadow-sm hover:shadow-md text-sm sm:text-base"
-          >
-            <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Invite New Member</span>
-          </button>
-        )}
-      </div>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');`}</style>
+      <InviteModal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)} onSuccess={() => { fetchUsers(); setShowInviteModal(false) }} />
+      <ProfileModal isOpen={showProfileModal} onClose={() => { setShowProfileModal(false); setSelectedUserForEdit(null) }} user={selectedUserForEdit} onUpdate={fetchUsers} />
 
-      {/* Stats Cards - Stack on mobile */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 p-3 sm:p-4 md:p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600">Total Members</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{users.length}</p>
-            </div>
-            <Users className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 text-gray-400" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 p-3 sm:p-4 md:p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600">Administrators</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                {users.filter(u => u.role === 'ADMIN').length}
-              </p>
-            </div>
-            <Shield className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 text-purple-400" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 p-3 sm:p-4 md:p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600">Executives</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                {users.filter(u => u.role === 'EXEC').length}
-              </p>
-            </div>
-            <Briefcase className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 text-blue-400" />
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 p-3 sm:p-4 md:p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600">Active</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                {users.filter(u => u.isActive).length}
-              </p>
-            </div>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full bg-green-100 flex items-center justify-center">
-              <div className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full bg-green-500"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div className="space-y-5 pb-24 lg:pb-8">
 
-      {/* Filters - Stack on mobile */}
-      <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 p-3 sm:p-4 md:p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search members by name, email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2 sm:py-2.5 bg-gray-50 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] transition-all duration-200 text-sm"
-            />
+        {/* ── Header ── */}
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] text-emerald-400/65 font-bold tracking-[0.22em] uppercase mb-1">Administration</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight" style={{ fontFamily: 'Syne, sans-serif' }}>
+              Department Members
+            </h1>
+            <p className="text-sm text-white/30 mt-1">Manage all executives and administrators</p>
           </div>
+          {currentUser?.role === 'ADMIN' && (
+            <motion.button whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
+              onClick={() => setShowInviteModal(true)}
+              className="relative overflow-hidden inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl
+                bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white font-bold text-sm self-start sm:self-auto
+                shadow-[0_8px_24px_rgba(13,124,61,0.35)]">
+              <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12"
+                animate={{ x: ['-100%', '200%'] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2 }} />
+              <UserPlus className="w-4 h-4 relative z-10" />
+              <span className="relative z-10">Invite Member</span>
+            </motion.button>
+          )}
+        </motion.div>
 
-          {/* Role Filter */}
-          <div className="relative">
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as any)}
-              className="appearance-none w-full sm:w-48 pl-3 pr-8 sm:pr-10 py-2 sm:py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] transition-all duration-200 text-sm"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="ADMIN">Administrators</option>
-              <option value="EXEC">Executives</option>
-            </select>
-            <Filter className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
+        {/* ── Stat Chips ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {statCards.map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+              className="rounded-2xl bg-[#06100a] border border-white/[0.06] px-4 py-3.5 flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-black leading-none mb-1" style={{ fontFamily: 'Syne, sans-serif' }}>
+                  <CountUp value={s.value} color={s.color} />
+                </p>
+                <p className="text-[11px] text-white/30 font-bold tracking-[0.12em] uppercase">{s.label}</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: s.color + '14', border: `1px solid ${s.color}22` }}>
+                <s.Icon style={{ width: 16, height: 16, color: s.color }} />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* ── Filter Bar ── */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
+          className="flex flex-wrap items-center gap-2.5 p-4 rounded-2xl bg-[#06100a] border border-white/[0.06]">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-400/45" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search members by name, email…"
+              className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08]
+                text-white text-sm placeholder:text-white/18 outline-none
+                focus:border-emerald-500/40 focus:bg-white/[0.07] transition-all" />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/55">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-
-          {/* Position Filter */}
-            <div className="relative">
-              <select
-                value={positionFilter}
-                onChange={(e) => setPositionFilter(e.target.value)}
-                className="appearance-none w-full sm:w-48 pl-3 pr-8 sm:pr-10 py-2 sm:py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] transition-all duration-200 text-sm"
-              >
-                <option value="ALL">All Positions</option>
-                {positions.map(position => (
-                  <option key={position} value={position}>{position}</option>
-                ))}
+          {[
+            { val: roleFilter,     set: (v: any) => setRoleFilter(v),   opts: [['ALL','All Roles'],['ADMIN','Admins'],['EXEC','Executives']] },
+            { val: positionFilter, set: setPositionFilter,              opts: [['ALL','All Positions'], ...positions.map(p => [p, p])] },
+            { val: statusFilter,   set: (v: any) => setStatusFilter(v), opts: [['ALL','All Status'],['ACTIVE','Active'],['INACTIVE','Inactive']] },
+          ].map((sel, i) => (
+            <div key={i} className="relative">
+              <select value={sel.val} onChange={e => sel.set(e.target.value)} className={selCls}>
+                {sel.opts.map(([v, l]) => <option key={v} value={v} className="bg-[#06100a] text-white">{l}</option>)}
               </select>
-              <Filter className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/22 pointer-events-none" />
             </div>
+          ))}
+        </motion.div>
 
-          {/* Status Filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="appearance-none w-full sm:w-48 pl-3 pr-8 sm:pr-10 py-2 sm:py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] transition-all duration-200 text-sm"
-            >
-              <option value="ALL">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-            <Filter className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
-          </div>
-        </div>
-      </div>
+        {/* ── Error ── */}
+        {error && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <p className="text-rose-400 text-sm flex-1">{error}</p>
+            <button onClick={fetchUsers} className="text-xs text-rose-400/70 hover:text-rose-400 underline shrink-0">Retry</button>
+          </motion.div>
+        )}
 
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
-          <p className="text-red-600 flex items-center gap-2 text-sm">
-            <span className="font-semibold">Error:</span> {error}
-            <button 
-              onClick={fetchUsers}
-              className="ml-auto text-xs sm:text-sm text-red-700 hover:text-red-900 underline"
-            >
-              Retry
-            </button>
-          </p>
-        </div>
-      )}
-
-      {/* Users Table - Scroll horizontally on mobile */}
-      <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Member
-                </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Role & Status
-                </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Last Active
-                </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-3 sm:px-4 md:px-6 py-8 sm:py-12 text-center">
-                    <Users className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-2 sm:mb-3" />
-                    <p className="text-gray-500 text-sm sm:text-base">No members found</p>
-                    {search && (
-                      <p className="text-gray-400 text-xs sm:text-sm mt-1">
-                        Try adjusting your search or filters
-                      </p>
-                    )}
-                  </td>
+        {/* ── Table ── */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="rounded-2xl bg-[#06100a] border border-white/[0.06] overflow-hidden"
+          style={{ boxShadow: '0 4px 32px rgba(0,0,0,0.35)' }}>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-white/[0.05]">
+                  {['Member','Role & Status','Department','Last Active','Actions'].map(h => (
+                    <th key={h} className="py-3 px-4 text-left text-[10px] font-black text-white/18 tracking-[0.18em] uppercase first:pl-5 last:pr-5">{h}</th>
+                  ))}
                 </tr>
-              ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 bg-gradient-to-br from-[#0d7c3d]/20 to-[#0a5a2d]/20 rounded-full flex items-center justify-center">
-                          <span className="font-semibold text-[#0d7c3d] text-sm">
-                            {user.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="ml-2 sm:ml-3 md:ml-4 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {user.name}
-                            {user._id === currentUser?.id && (
-                              <span className="ml-1 text-xs text-gray-500">(You)</span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1 truncate">
-                            <Mail className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{user.email}</span>
-                          </div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            Joined {formatDate(user.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-                      <div className="space-y-1 sm:space-y-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                          {user.role === 'ADMIN' ? (
-                            <>
-                              <Shield className="w-3 h-3 mr-1 hidden sm:inline" />
-                              <span className="truncate">Admin</span>
-                            </>
-                          ) : (
-                            <>
-                              <Briefcase className="w-3 h-3 mr-1 hidden sm:inline" />
-                              <span className="truncate">Executive</span>
-                            </>
-                          )}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeColor(user.isActive)}`}>
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-                      <div className="text-sm text-gray-900 truncate">{user.department}</div>
-                      <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 truncate">
-                        <Building className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate">{user.position}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-                      <div className="text-xs sm:text-sm text-gray-900 flex items-center gap-1">
-                        <Calendar className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowUserMenu(showUserMenu === user._id ? null : user._id)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                        >
-                          <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                        </button>
-                        
-                        {showUserMenu === user._id && (
-                          <>
-                            <div 
-                              className="fixed inset-0 z-40" 
-                              onClick={() => setShowUserMenu(null)}
-                            />
-                            <div className="absolute right-0 mt-2 w-40 sm:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                              <div className="py-1">
-                              <button 
-                                onClick={() => handleEditProfile(user)}
-                                className="flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                              >
-                                <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                                Edit Profile
-                              </button>
-                                
-                                <button 
-                                  onClick={() => handleToggleStatus(user._id, user.isActive)}
-                                  className="flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                                >
-                                  <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${user.isActive ? 'bg-red-500' : 'bg-green-500'}`} />
-                                  {user.isActive ? 'Deactivate' : 'Activate'}
-                                </button>
-                                
-                                {currentUser?.role === 'ADMIN' && currentUser?.id !== user._id && (
-                                  <button 
-                                    onClick={() => handleDeleteUser(user._id)}
-                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    Delete User
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-16 text-center">
+                      <Users className="w-10 h-10 text-white/8 mx-auto mb-3" />
+                      <p className="text-white/22 text-sm">No members found</p>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination */}
-        {filteredUsers.length > 0 && (
-          <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 bg-gray-50">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
-              <div className="text-xs sm:text-sm text-gray-700">
-                Showing <span className="font-medium">{filteredUsers.length}</span> of{' '}
-                <span className="font-medium">{users.length}</span> members
-              </div>
+                ) : filteredUsers.map((user, i) => {
+                  const color = getUserColor(user.name)
+                  return (
+                    <motion.tr key={user._id}
+                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 + i * 0.05 }}
+                      className="group border-b border-white/[0.03] hover:bg-white/[0.022] transition-colors duration-200">
+
+                      {/* Member */}
+                      <td className="py-4 pl-5 pr-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={user.name} color={color} size={9} />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold text-white/82 group-hover:text-white transition-colors truncate">
+                                {user.name}
+                              </p>
+                              {user._id === currentUser?.id && (
+                                <span className="text-[10px] text-emerald-400/60 font-bold">(You)</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-[11px] text-white/28 mt-0.5">
+                              <Mail className="w-3 h-3 shrink-0" />
+                              <span className="truncate max-w-[160px]">{user.email}</span>
+                            </div>
+                            <p className="text-[10px] text-white/20 mt-0.5">Joined {formatDate(user.createdAt)}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Role & Status */}
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col gap-1.5">
+                          <RoleChip role={user.role} />
+                          <StatusChip isActive={user.isActive} />
+                        </div>
+                      </td>
+
+                      {/* Department */}
+                      <td className="py-4 px-4">
+                        <p className="text-sm text-white/60 truncate">{user.department}</p>
+                        <div className="flex items-center gap-1 text-[11px] text-white/28 mt-0.5">
+                          <Building className="w-3 h-3 shrink-0" />
+                          <span className="truncate max-w-[120px]">{user.position}</span>
+                        </div>
+                      </td>
+
+                      {/* Last Active */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-1.5 text-xs text-white/38">
+                          <Calendar className="w-3.5 h-3.5 text-emerald-400/35" />
+                          {formatDate(user.lastLogin)}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-4 pr-5 pl-4">
+                        <div className="relative">
+                          <motion.button whileTap={{ scale: 0.9 }}
+                            onClick={() => setShowUserMenu(showUserMenu === user._id ? null : user._id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg
+                              bg-white/[0.05] border border-white/[0.08] flex items-center justify-center
+                              text-white/35 hover:text-white/70 hover:bg-white/[0.08]">
+                            <MoreVertical className="w-4 h-4" />
+                          </motion.button>
+
+                          <AnimatePresence>
+                            {showUserMenu === user._id && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(null)} />
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.9, y: -6 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.9, y: -6 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="absolute right-0 mt-1 w-44 rounded-2xl overflow-hidden z-50"
+                                  style={{
+                                    background: 'linear-gradient(145deg, #0a1c11, #061510)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(13,124,61,0.1)',
+                                  }}>
+                                  <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+                                  <div className="py-1.5">
+                                    <button onClick={() => handleEditProfile(user)}
+                                      className="flex items-center gap-2.5 w-full px-4 py-2 text-xs text-white/60 hover:text-white hover:bg-white/[0.05] transition-colors">
+                                      <Edit className="w-3.5 h-3.5 text-emerald-400/60" />Edit Profile
+                                    </button>
+                                    <button onClick={() => handleToggleStatus(user._id, user.isActive)}
+                                      className="flex items-center gap-2.5 w-full px-4 py-2 text-xs text-white/60 hover:text-white hover:bg-white/[0.05] transition-colors">
+                                      <span className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                                      {user.isActive ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                    {currentUser?.role === 'ADMIN' && currentUser?.id !== user._id && (
+                                      <>
+                                        <div className="mx-3 my-1 h-px bg-white/[0.06]" />
+                                        <button onClick={() => handleDeleteUser(user._id)}
+                                          className="flex items-center gap-2.5 w-full px-4 py-2 text-xs text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/[0.06] transition-colors">
+                                          <Trash2 className="w-3.5 h-3.5" />Delete User
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              </>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer */}
+          {filteredUsers.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5 border-t border-white/[0.05]">
+              <span className="text-xs text-white/25">Showing <span className="text-white/50 font-semibold">{filteredUsers.length}</span> of <span className="text-white/50 font-semibold">{users.length}</span> members</span>
               <div className="flex items-center gap-2">
-                <button className="px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg">
-                  Previous
-                </button>
-                <button className="px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm bg-[#0d7c3d] hover:bg-[#0a5a2d] text-white border border-[#0d7c3d] rounded-lg">
-                  Next
-                </button>
+                <button className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/[0.05] border border-white/[0.08] text-white/40 hover:text-white/65 transition-colors">Previous</button>
+                <button className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#0d7c3d]/80 border border-[#0d7c3d]/40 text-white hover:bg-[#0d7c3d] transition-colors">Next</button>
               </div>
             </div>
-          </div>
-        )}
-      </div>    
-      
-      <InviteModal
-        isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
-        onSuccess={() => {
-          fetchUsers();
-          setShowInviteModal(false);
-        }}
-      />
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={() => {
-          setShowProfileModal(false)
-          setSelectedUserForEdit(null)
-        }}
-        user={selectedUserForEdit}
-        onUpdate={handleUserUpdated}
-      />
-    </div>
+          )}
+        </motion.div>
+      </div>
+    </>
   )
 }

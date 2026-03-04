@@ -1,16 +1,17 @@
-//C:\Users\SMC\Documents\GitHub\dept-exec-app\src\components\tasks\create-task-modal.tsx
+// src/components/tasks/create-task-modal.tsx
 'use client'
 
 import { useState } from 'react'
-import { X, Calendar, User, Target, FileText } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, Calendar, Target, Flame, Zap, Minus, Plus, CheckCircle } from 'lucide-react'
 import { format } from 'date-fns'
 
 const executives = [
-  { id: 1, name: 'Treasurer', initials: 'TR', color: 'bg-blue-500' },
-  { id: 2, name: 'Secretary', initials: 'SC', color: 'bg-emerald-500' },
-  { id: 3, name: 'PRO', initials: 'PR', color: 'bg-purple-500' },
-  { id: 4, name: 'Social Media Head', initials: 'SM', color: 'bg-pink-500' },
-  { id: 5, name: 'Academic Head', initials: 'AH', color: 'bg-amber-500' },
+  { id: 1, name: 'Treasurer',         initials: 'TR', color: '#3b82f6' },
+  { id: 2, name: 'Secretary',         initials: 'SC', color: '#10b981' },
+  { id: 3, name: 'PRO',               initials: 'PR', color: '#a78bfa' },
+  { id: 4, name: 'Social Media Head', initials: 'SM', color: '#f472b6' },
+  { id: 5, name: 'Academic Head',     initials: 'AH', color: '#f59e0b' },
 ]
 
 const goals = [
@@ -19,238 +20,229 @@ const goals = [
   { id: 3, title: 'Alumni Networking Event' },
 ]
 
+const PRIORITIES = [
+  { value: 'high',   Icon: Flame, label: 'High',   accent: '#f43f5e', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-rose-500/50 bg-rose-500/12 shadow-[0_0_22px_rgba(244,63,94,0.22)]' },
+  { value: 'medium', Icon: Zap,   label: 'Medium', accent: '#f59e0b', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-amber-500/50 bg-amber-500/12 shadow-[0_0_22px_rgba(245,158,11,0.22)]' },
+  { value: 'low',    Icon: Minus, label: 'Low',    accent: '#6b7280', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-white/25 bg-white/[0.07] shadow-none' },
+]
+
 interface CreateTaskModalProps {
   isOpen: boolean
   onClose: () => void
   onCreateTask: (taskData: any) => void
 }
 
-export default function CreateTaskModal({ isOpen, onClose, onCreateTask }: CreateTaskModalProps) {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    assignedTo: '',
-    dueDate: '',
-    priority: 'medium',
-    goalId: '',
-  })
+const inputCls = `w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.09]
+  text-white text-sm placeholder:text-white/18 outline-none
+  focus:border-emerald-500/45 focus:bg-white/[0.08] transition-all duration-200`
 
-  if (!isOpen) return null
+function Label({ children }: { children: React.ReactNode }) {
+  return <p className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/35 mb-1.5">{children}</p>
+}
+
+export default function CreateTaskModal({ isOpen, onClose, onCreateTask }: CreateTaskModalProps) {
+  const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '', dueDate: '', priority: 'medium', goalId: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
+
+  const set = (key: string, val: string) => setFormData(p => ({ ...p, [key]: val }))
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!formData.assignedTo) {
-      alert('Please assign the task to an executive')
-      return
-    }
+    if (!formData.assignedTo) return
+    setSubmitting(true)
 
-    const selectedExecutive = executives.find(e => e.name === formData.assignedTo)
-    
+    const exec = executives.find(ex => ex.name === formData.assignedTo) ?? executives[0]
     const newTask = {
-      id: Date.now(), // Temporary ID
-      title: formData.title,
-      description: formData.description,
-      assignedTo: selectedExecutive || executives[0],
-      dueDate: formData.dueDate ? new Date(formData.dueDate) : new Date(),
-      priority: formData.priority,
-      status: 'pending',
-      progress: 0,
+      id: Date.now(), title: formData.title, description: formData.description,
+      assignedTo: exec, dueDate: formData.dueDate ? new Date(formData.dueDate) : new Date(),
+      priority: formData.priority, status: 'pending', progress: 0,
     }
 
-    console.log('Creating task:', newTask)
-    onCreateTask(newTask)
-    
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      assignedTo: '',
-      dueDate: '',
-      priority: 'medium',
-      goalId: '',
-    })
-    
-    onClose()
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setTimeout(() => {
+      setDone(true)
+      setTimeout(() => {
+        onCreateTask(newTask)
+        setFormData({ title: '', description: '', assignedTo: '', dueDate: '', priority: 'medium', goalId: '' })
+        setSubmitting(false)
+        setDone(false)
+        onClose()
+      }, 700)
+    }, 500)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-2xl mx-4 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Create New Task</h2>
-            <p className="text-sm text-gray-600">Assign tasks to department executives</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(3,10,5,0.82)', backdropFilter: 'blur(10px)' }}
+          onClick={e => { if (e.target === e.currentTarget) onClose() }}>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="space-y-6">
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Task Title *
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g., Prepare budget proposal for faculty board"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] transition-all"
-                required
-              />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.93, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.93, y: 24 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+            className="w-full max-w-2xl rounded-3xl overflow-hidden"
+            style={{
+              background: 'linear-gradient(145deg, #07150f 0%, #0a1c11 100%)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              boxShadow: '0 28px 80px rgba(0,0,0,0.72), 0 0 0 1px rgba(13,124,61,0.12), inset 0 1px 0 rgba(255,255,255,0.05)',
+            }}>
+
+            {/* Top shimmer */}
+            <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-7 py-5 border-b border-white/[0.05]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#0d7c3d]/20 border border-[#0d7c3d]/25 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>Create New Task</h2>
+                  <p className="text-[11px] text-white/30">Assign to a department executive</p>
+                </div>
+              </div>
+              <motion.button whileTap={{ scale: 0.88, rotate: 90 }} onClick={onClose}
+                className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/35 hover:text-white/65 transition-colors">
+                <X className="w-4 h-4" />
+              </motion.button>
             </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Describe the task details, expectations, and deliverables..."
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] transition-all"
-              />
-            </div>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="px-7 py-6 space-y-5 overflow-y-auto max-h-[70vh]">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Assignee - Enhanced */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Assign To Executive *
-  </label>
-  <div className="relative">
-    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
-    <select
-      name="assignedTo"
-      value={formData.assignedTo}
-      onChange={handleChange}
-      className="w-full pl-11 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] bg-white text-gray-900 appearance-none cursor-pointer"
-      required
-    >
-      <option value="" className="text-gray-500">Select executive</option>
-      {executives.map(exec => (
-        <option key={exec.id} value={exec.name} className="text-gray-900">
-          {exec.name}
-        </option>
-      ))}
-    </select>
-    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </div>
-  </div>
-</div>
+              {/* Title */}
+              <div>
+                <Label>Task Title *</Label>
+                <input type="text" value={formData.title} onChange={e => set('title', e.target.value)}
+                  placeholder="e.g., Prepare budget proposal for faculty board"
+                  className={inputCls} required />
+              </div>
 
-{/* Due Date */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Due Date *
-  </label>
-  <div className="relative">
-    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
-    <input
-      type="date"
-      name="dueDate"
-      value={formData.dueDate}
-      onChange={handleChange}
-      min={format(new Date(), 'yyyy-MM-dd')}
-      className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] text-gray-900 bg-white"
-      required
-    />
-  </div>
-</div>
+              {/* Description */}
+              <div>
+                <Label>Description</Label>
+                <textarea value={formData.description} onChange={e => set('description', e.target.value)}
+                  placeholder="Describe the task details, expectations, and deliverables…"
+                  rows={3} className={`${inputCls} resize-none`} />
+              </div>
 
-{/* Priority - Enhanced */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Priority
-  </label>
-  <div className="relative">
-    <select
-      name="priority"
-      value={formData.priority}
-      onChange={handleChange}
-      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] bg-white text-gray-900 appearance-none cursor-pointer pr-10"
-    >
-      <option value="low" className="text-gray-900">Low</option>
-      <option value="medium" className="text-gray-900">Medium</option>
-      <option value="high" className="text-gray-900">High</option>
-    </select>
-    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </div>
-  </div>
-</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-{/* Related Goal - Enhanced */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Related Goal (Optional)
-  </label>
-  <div className="relative">
-    <Target className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
-    <select
-      name="goalId"
-      value={formData.goalId}
-      onChange={handleChange}
-      className="w-full pl-11 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d7c3d]/20 focus:border-[#0d7c3d] bg-white text-gray-900 appearance-none cursor-pointer"
-    >
-      <option value="" className="text-gray-500">Select goal (optional)</option>
-      {goals.map(goal => (
-        <option key={goal.id} value={goal.id} className="text-gray-900">
-          {goal.title}
-        </option>
-      ))}
-    </select>
-    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </div>
-  </div>
-</div>
-            </div>
-          </div>
+                {/* Assignee avatar chips */}
+                <div>
+                  <Label>Assign To Executive *</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {executives.map(exec => (
+                      <motion.button key={exec.id} type="button" whileTap={{ scale: 0.92 }}
+                        onClick={() => set('assignedTo', exec.name)}
+                        className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200
+                          ${formData.assignedTo === exec.name
+                            ? 'border-[1.5px] text-white'
+                            : 'border-white/[0.08] bg-white/[0.03] text-white/40 hover:text-white/70 hover:bg-white/[0.06]'
+                          }`}
+                        style={formData.assignedTo === exec.name ? {
+                          borderColor: exec.color,
+                          background: exec.color + '18',
+                          boxShadow: `0 4px 16px ${exec.color}28`,
+                        } : {}}>
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black"
+                          style={{ background: exec.color + '28', color: exec.color }}>
+                          {exec.initials}
+                        </div>
+                        {exec.name}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-4 pt-8 border-t border-gray-100 mt-8">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-3 bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white font-medium rounded-xl hover:shadow-lg hover:shadow-[#0d7c3d]/20 transition-all"
-            >
-              Create Task
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+                {/* Due Date */}
+                <div>
+                  <Label>Due Date *</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/45" />
+                    <input type="date" value={formData.dueDate} onChange={e => set('dueDate', e.target.value)}
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                      className={`${inputCls} pl-10`} required />
+                  </div>
+                </div>
+
+                {/* Priority visual tiles */}
+                <div>
+                  <Label>Priority</Label>
+                  <div className="flex gap-2">
+                    {PRIORITIES.map(p => (
+                      <motion.button key={p.value} type="button" whileTap={{ scale: 0.93 }}
+                        onClick={() => set('priority', p.value)}
+                        className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border text-[11px] font-bold transition-all duration-200
+                          ${formData.priority === p.value ? p.glow : p.base}`}>
+                        <p.Icon className="w-4 h-4" style={{ color: formData.priority === p.value ? p.accent : 'rgba(255,255,255,0.3)' }} />
+                        <span style={{ color: formData.priority === p.value ? p.accent : 'rgba(255,255,255,0.3)' }}>{p.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Related goal */}
+                <div>
+                  <Label>Related Goal (Optional)</Label>
+                  <div className="relative">
+                    <Target className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/45" />
+                    <select value={formData.goalId} onChange={e => set('goalId', e.target.value)}
+                      className={`${inputCls} pl-10 appearance-none cursor-pointer`}>
+                      <option value="" className="bg-[#07150f]">Select goal (optional)</option>
+                      {goals.map(g => <option key={g.id} value={g.id} className="bg-[#07150f]">{g.title}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center gap-3 pt-4 border-t border-white/[0.05]">
+                <button type="button" onClick={onClose}
+                  className="flex-1 py-3 rounded-2xl border border-white/[0.09] text-white/45 text-sm font-semibold
+                    hover:text-white/70 hover:border-white/18 transition-colors">
+                  Cancel
+                </button>
+                <motion.button type="submit"
+                  disabled={submitting || !formData.assignedTo}
+                  whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
+                  className="flex-1 relative overflow-hidden py-3 rounded-2xl
+                    bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white text-sm font-bold
+                    shadow-[0_8px_24px_rgba(13,124,61,0.35)] disabled:opacity-50 disabled:cursor-not-allowed
+                    hover:shadow-[0_12px_32px_rgba(13,124,61,0.45)] transition-shadow">
+                  {!submitting && (
+                    <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12"
+                      animate={{ x: ['-100%', '200%'] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5 }} />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <AnimatePresence mode="wait">
+                      {done ? (
+                        <motion.span key="done" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" /> Task Created!
+                        </motion.span>
+                      ) : submitting ? (
+                        <motion.span key="spin" className="flex items-center gap-2">
+                          <motion.div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                            animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
+                          Creating…
+                        </motion.span>
+                      ) : (
+                        <motion.span key="idle" className="flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> Create Task
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </span>
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
