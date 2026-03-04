@@ -338,10 +338,7 @@ function MobileCommandPill() {
                   >
                     <Settings className="w-3.5 h-3.5" />
                     Settings
-                  </button>
-                  <div className="scale-90 origin-right">
-                    <UserSwitcher />
-                  </div>
+                  </button>                  
                 </motion.div>
               </motion.div>
             )}
@@ -432,22 +429,31 @@ function MobileTopBar() {
   )
 
   return (
-    <header className="lg:hidden sticky top-0 z-30 flex h-14 items-center justify-between
-      px-5 bg-white/95 backdrop-blur-md border-b border-gray-100/80">
-
+    <header
+      className="lg:hidden sticky top-0 z-30 flex h-14 items-center justify-between
+      px-5 bg-white/95 backdrop-blur-md border-b border-gray-100/80"
+    >
       {/* Left spacer for sidebar open button */}
       <div className="w-10" />
-
+  
       {/* Centre: page label */}
       <div className="flex flex-col items-center">
-        <p className="text-sm font-bold text-gray-900" style={{ fontFamily: 'Syne, sans-serif' }}>
+        <p
+          className="text-sm font-bold text-gray-900"
+          style={{ fontFamily: 'Syne, sans-serif' }}
+        >
           {activeItem?.label ?? 'Dashboard'}
         </p>
-        <p className="text-[10px] text-gray-400">{format(today, 'MMM d')}</p>
+        <p className="text-[10px] text-gray-400">
+          {format(today, 'MMM d')}
+        </p>
       </div>
-
-      {/* Right: notifications only — everything else in command pill */}
-      <NotificationBell />
+  
+      {/* Right side grouped */}
+      <div className="flex items-center gap-3">
+        <NotificationBell />
+        <UserSwitcher />
+      </div>
     </header>
   )
 }

@@ -121,7 +121,7 @@ export default function NotificationBell() {
 
       {/* Dropdown Menu - MATCHING YOUR DASHBOARD DESIGN LANGUAGE */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-gray-200 shadow-xl z-50 overflow-hidden">
+        <div className="absolute top-full left-0.9 -translate-x-40 mt-2 w-80 bg-white rounded-xl border border-gray-200 shadow-xl z-50 overflow-hidden">
           {/* Header */}
           <div className="p-4 border-b border-gray-100 bg-white">
             <div className="flex items-center justify-between">

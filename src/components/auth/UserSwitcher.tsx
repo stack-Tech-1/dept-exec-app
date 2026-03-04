@@ -1,3 +1,4 @@
+// C:\Users\SMC\Documents\GitHub\dept-exec-app\src\components\auth\UserSwitcher.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
