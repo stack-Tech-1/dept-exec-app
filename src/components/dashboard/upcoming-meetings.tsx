@@ -1,232 +1,236 @@
-// C:\Users\SMC\Documents\GitHub\dept-exec-app\src\components\dashboard\upcoming-meetings.tsx
+// src/components/dashboard/upcoming-meetings.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Calendar, Video, MapPin, Users, Clock, Plus } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Video, MapPin, Users, Clock, Plus, ArrowRight, Zap } from 'lucide-react'
 import { dashboardService, Meeting } from '@/services/dashboard'
 import { format } from 'date-fns'
+import Link from 'next/link'
 
-const meetingTypeColors = {
-  zoom: 'bg-blue-100 text-blue-700',
-  physical: 'bg-emerald-100 text-emerald-700',
-  hybrid: 'bg-purple-100 text-purple-700',
+/* ─── Meeting type config ────────────────────────── */
+const TYPE_CONFIG = {
+  zoom:     { icon: Video,   label: 'Virtual',  color: '#60a5fa', bg: 'bg-blue-400/10 text-blue-400' },
+  physical: { icon: MapPin,  label: 'In-Person', color: '#34d399', bg: 'bg-emerald-400/10 text-emerald-400' },
+  hybrid:   { icon: Users,   label: 'Hybrid',   color: '#a78bfa', bg: 'bg-violet-400/10 text-violet-400' },
 }
 
-const meetingTypeIcons = {
-  zoom: Video,
-  physical: MapPin,
-  hybrid: Users,
+function getMeetingType(venue: string): keyof typeof TYPE_CONFIG {
+  const v = venue.toLowerCase()
+  if (v.includes('zoom')) return 'zoom'
+  if (v.includes('+') || v.includes('hybrid')) return 'hybrid'
+  return 'physical'
 }
+
+/* ─── Single meeting card (timeline item) ────────── */
+function MeetingItem({ meeting, index, isLast }: { meeting: Meeting; index: number; isLast: boolean }) {
+  const type = getMeetingType(meeting.venue)
+  const cfg = TYPE_CONFIG[type]
+  const TypeIcon = cfg.icon
+
+  const timeFromNow = dashboardService.getTimeFromNow(meeting.date)
+  const isUrgent = timeFromNow === 'Today' || timeFromNow === 'Tomorrow'
+
+  const meetingDate = new Date(meeting.date)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.1 + index * 0.1, duration: 0.5 }}
+      className="relative flex gap-4 group"
+    >
+      {/* Timeline thread */}
+      <div className="flex flex-col items-center shrink-0" style={{ width: 32 }}>
+        {/* Node */}
+        <motion.div
+          className="relative z-10 w-8 h-8 rounded-xl flex items-center justify-center border"
+          style={{
+            background: `${cfg.color}15`,
+            borderColor: `${cfg.color}30`,
+          }}
+          whileHover={{ scale: 1.1 }}
+        >
+          {isUrgent && (
+            <motion.div
+              className="absolute inset-0 rounded-xl"
+              style={{ background: cfg.color, opacity: 0.12 }}
+              animate={{ scale: [1, 1.3, 1], opacity: [0.12, 0, 0.12] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          )}
+          <TypeIcon style={{ width: 14, height: 14, color: cfg.color }} />
+        </motion.div>
+
+        {/* Thread */}
+        {!isLast && (
+          <motion.div
+            className="flex-1 w-px mt-1"
+            style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.07), rgba(255,255,255,0.02))' }}
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
+          />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className={`flex-1 min-w-0 pb-5 ${isLast ? '' : ''}`}>
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.05] p-3.5
+          group-hover:bg-white/[0.05] group-hover:border-white/[0.08]
+          transition-all duration-200">
+
+          {/* Top row */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="min-w-0">
+              <h4 className="text-sm font-semibold text-white/90 group-hover:text-white truncate transition-colors">
+                {meeting.title}
+              </h4>
+              <p className="text-[11px] text-white/30 mt-0.5 truncate">{meeting.venue}</p>
+            </div>
+            <Link href={`/dashboard/minutes/${meeting.id}`}
+              className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <ArrowRight className="w-4 h-4 text-emerald-400" />
+            </Link>
+          </div>
+
+          {/* Tags row */}
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            {/* When */}
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+              ${isUrgent ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20' : 'bg-white/[0.05] text-white/40 border border-white/[0.07]'}`}>
+              {isUrgent && <Zap className="w-2.5 h-2.5" />}
+              {timeFromNow}
+            </span>
+
+            {/* Type */}
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.bg}`}>
+              <TypeIcon style={{ width: 9, height: 9 }} />
+              {cfg.label}
+            </span>
+
+            {/* Time */}
+            <span className="flex items-center gap-1 text-[11px] text-white/30 ml-auto">
+              <Clock className="w-3 h-3" />
+              {format(meetingDate, 'h:mm a')}
+            </span>
+          </div>
+
+          {/* Date bar */}
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-white/25">
+              {format(meetingDate, 'EEE, MMM d')}
+            </span>
+            <div className="flex gap-1.5">
+              <Link href={`/dashboard/minutes/${meeting.id}`}>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white
+                    bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d]
+                    hover:shadow-[0_2px_12px_rgba(13,124,61,0.4)] transition-shadow"
+                >
+                  Details
+                </motion.button>
+              </Link>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white/50
+                  border border-white/[0.08] hover:text-white/80 hover:border-white/20 transition-colors"
+              >
+                Join
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Skeleton ───────────────────────────────────── */
+function MeetingSkeleton({ index }: { index: number }) {
+  return (
+    <div className="flex gap-4 animate-pulse">
+      <div className="w-8 h-8 rounded-xl bg-white/[0.05] shrink-0" />
+      <div className="flex-1 pb-5">
+        <div className="rounded-xl bg-white/[0.03] border border-white/[0.04] p-3.5 space-y-2.5">
+          <div className="h-4 bg-white/[0.05] rounded w-3/4" />
+          <div className="h-3 bg-white/[0.04] rounded w-1/2" />
+          <div className="h-6 bg-white/[0.03] rounded w-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════
+   ROOT EXPORT
+═══════════════════════════════════════════════════ */
+const FALLBACK: Meeting[] = [
+  { id:'1', title:'Executive Committee Meeting', date:'2024-12-15T14:00:00', time:'14:00', venue:'cs-dept/exec-meeting', approved:false, createdBy:{id:'1',name:'Admin'}, session:'2024/2025', semester:'First Semester' },
+  { id:'2', title:'Faculty Advisor Briefing', date:'2024-12-18T10:00:00', time:'10:00', venue:'CS Conference Room', approved:false, createdBy:{id:'1',name:'Admin'}, session:'2024/2025', semester:'First Semester' },
+  { id:'3', title:'Department Orientation Planning', date:'2024-12-20T15:30:00', time:'15:30', venue:'Zoom + Room 302', approved:false, createdBy:{id:'1',name:'Admin'}, session:'2024/2025', semester:'First Semester' },
+]
 
 export default function UpcomingMeetings() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchUpcomingMeetings()
+    dashboardService.getUpcomingMeetings(3)
+      .then(data => setMeetings(data.length ? data : FALLBACK))
+      .catch(() => setMeetings(FALLBACK))
+      .finally(() => setLoading(false))
   }, [])
 
-  const fetchUpcomingMeetings = async () => {
-    try {
-      const data = await dashboardService.getUpcomingMeetings(3)
-      setMeetings(data)
-    } catch (error) {
-      console.error('Failed to fetch meetings:', error)
-      setMeetings([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function getTimeFromNow(dateString: string): string {
-    return dashboardService.getTimeFromNow(dateString)
-  }
-
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm">
-        <div className="p-4 sm:p-6 border-b border-gray-100 animate-pulse">
-          <div className="space-y-2">
-            <div className="h-5 w-32 sm:w-40 bg-gray-200 rounded"></div>
-            <div className="h-3.5 w-40 sm:w-48 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="p-4 sm:p-6 border-b border-gray-100 animate-pulse">
-            <div className="space-y-3 sm:space-y-4">
-              <div className="h-3.5 w-3/4 bg-gray-200 rounded"></div>
-              <div className="h-6 w-36 sm:w-48 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  const displayMeetings = meetings.length > 0 ? meetings : [
-    {
-      id: '1',
-      title: 'Executive Committee Meeting',
-      date: '2024-12-15T14:00:00',
-      time: '14:00',
-      venue: 'cs-dept/exec-meeting',
-      approved: false,
-      createdBy: { id: '1', name: 'Admin' },
-      session: '2024/2025',
-      semester: 'First Semester'
-    },
-    {
-      id: '2',
-      title: 'Faculty Advisor Briefing',
-      date: '2024-12-18T10:00:00',
-      time: '10:00',
-      venue: 'CS Conference Room',
-      approved: false,
-      createdBy: { id: '1', name: 'Admin' },
-      session: '2024/2025',
-      semester: 'First Semester'
-    },
-    {
-      id: '3',
-      title: 'Department Orientation Planning',
-      date: '2024-12-20T15:30:00',
-      time: '15:30',
-      venue: 'Zoom + Room 302',
-      approved: false,
-      createdBy: { id: '1', name: 'Admin' },
-      session: '2024/2025',
-      semester: 'First Semester'
-    },
-  ]
-
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm">
-      <div className="p-4 sm:p-6 border-b border-gray-100">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap');`}</style>
+      <div className="rounded-2xl bg-[#06100a] border border-white/[0.06] overflow-hidden"
+        style={{ boxShadow: '0 4px 32px rgba(0,0,0,0.3)' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Upcoming Meetings</h3>
-            <p className="text-sm text-gray-500 mt-1">This week's scheduled meetings</p>
+            <h3 className="text-sm font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+              Upcoming Meetings
+            </h3>
+            <p className="text-[11px] text-white/35">This week's schedule</p>
           </div>
-          <button 
-            onClick={() => window.location.href = '/dashboard/minutes/create'}
-            className="inline-flex items-center gap-1 text-[#0d7c3d] hover:text-[#0a5a2d] text-sm font-medium self-start sm:self-center"
-          >
-            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span>Schedule</span>
-          </button>
+          <Link href="/dashboard/minutes/create"
+            className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400
+              hover:text-emerald-300 transition-colors tracking-wide uppercase">
+            <Plus className="w-3 h-3" /> Schedule
+          </Link>
+        </div>
+
+        {/* Timeline */}
+        <div className="px-5 pt-5 pb-2 max-h-[480px] overflow-y-auto">
+          {loading
+            ? [0,1,2].map(i => <MeetingSkeleton key={i} index={i} />)
+            : meetings.map((m, i) => (
+                <MeetingItem key={m.id} meeting={m} index={i} isLast={i === meetings.length - 1} />
+              ))
+          }
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-white/[0.05]">
+          <Link href="/dashboard/meetings">
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="flex items-center justify-center gap-2 py-2.5 rounded-xl
+                border border-dashed border-white/10 text-white/30
+                hover:border-emerald-500/30 hover:text-emerald-400
+                text-xs font-semibold transition-all duration-200 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              View Full Calendar
+            </motion.div>
+          </Link>
         </div>
       </div>
-      
-      <div className="max-h-[500px] overflow-y-auto">
-        <div className="divide-y divide-gray-100">
-          {displayMeetings.map((meeting) => {
-            let meetingType: 'zoom' | 'physical' | 'hybrid' = 'physical'
-            if (meeting.venue.toLowerCase().includes('zoom')) {
-              meetingType = 'zoom'
-            } else if (meeting.venue.toLowerCase().includes('+') || meeting.venue.toLowerCase().includes('hybrid')) {
-              meetingType = 'hybrid'
-            }
-            
-            const TypeIcon = meetingTypeIcons[meetingType]
-            const timeFromNow = getTimeFromNow(meeting.date)
-            const isUrgent = timeFromNow === 'Today' || timeFromNow === 'Tomorrow'
-            
-            return (
-              <div key={meeting.id} className="p-4 sm:p-6 hover:bg-gray-50/50 transition-colors group">
-                <div className="flex items-start gap-2 sm:gap-3">
-                  {/* Date Badge */}
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-[#0d7c3d]/10 to-[#0a5a2d]/5 flex flex-col items-center justify-center">
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-[#0d7c3d] mb-0.5" />
-                      <span className="text-xs font-bold text-gray-900">
-                        {format(new Date(meeting.date), 'dd')}
-                      </span>
-                      <span className="text-[8px] sm:text-[9px] text-gray-500">
-                        {format(new Date(meeting.date), 'MMM')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Meeting Details */}
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    {/* Title and meta row */}
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                      <div className="min-w-0">
-                        <h4 className="font-semibold text-gray-900 text-sm truncate">
-                          {meeting.title}
-                        </h4>
-                        <div className="flex flex-wrap items-center gap-1 mt-0.5 sm:mt-1">
-                          <span className="text-xs text-[#0d7c3d] font-medium bg-[#0d7c3d]/10 px-1.5 py-0.5 rounded">
-                            {timeFromNow}
-                          </span>
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${meetingTypeColors[meetingType]}`}>
-                            <TypeIcon className="h-2.5 w-2.5" />
-                            <span className="hidden sm:inline">
-                              {meetingType.charAt(0).toUpperCase() + meetingType.slice(1)}
-                            </span>
-                          </span>
-                          {isUrgent && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-medium">
-                              ⚠️ <span className="hidden sm:inline">Urgent</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
-                        <Clock className="h-3 w-3" />
-                        {meeting.time}
-                      </span>
-                    </div>
-
-                    {/* Location */}
-                    <p className="text-xs text-gray-600 mb-2 sm:mb-3 line-clamp-2">
-                      {meeting.venue}
-                    </p>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                      <button 
-                        onClick={() => window.location.href = `/dashboard/minutes/${meeting.id}`}
-                        className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white text-xs font-medium rounded-lg hover:shadow-[#0d7c3d]/20 transition-all duration-200 flex-1 min-w-[100px]"
-                      >
-                        View Details
-                      </button>
-                      <button className="px-2.5 sm:px-3 py-1 sm:py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors flex-1 min-w-[100px]">
-                        Join Meeting
-                      </button>
-                    </div>
-
-                    {/* Time indicator */}
-                    <div className="mt-2 sm:mt-3">
-                      <div className="flex items-center justify-between text-[10px] text-gray-500 mb-0.5 sm:mb-1">
-                        <span>{format(new Date(meeting.date), 'MMM d')}</span>
-                        <span>{format(new Date(`${meeting.date.split('T')[0]}T${meeting.time}`), 'h:mm a')}</span>
-                      </div>
-                      <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d]"
-                          style={{ width: isUrgent ? '90%' : '60%' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-      
-      {/* Footer with quick action */}
-      <div className="p-3 sm:p-4 border-t border-gray-100">
-        <button 
-          onClick={() => window.location.href = '/dashboard/minutes/create'}
-          className="w-full py-2 sm:py-2.5 border-2 border-dashed border-gray-200 rounded-lg sm:rounded-xl text-gray-500 hover:text-[#0d7c3d] hover:border-[#0d7c3d]/30 transition-colors text-xs font-medium flex items-center justify-center gap-1.5"
-        >
-          <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-          Add Meeting from Calendar
-        </button>
-      </div>
-    </div>
+    </>
   )
 }
