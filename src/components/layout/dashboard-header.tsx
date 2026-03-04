@@ -252,7 +252,7 @@ function MobileTopBar() {
             <activeItem.icon className="w-3 h-3 text-emerald-400/65" />
           )}
           <p
-            className="text-[13px] font-black text-white leading-none"
+            className="text-[13px] font-bold text-white leading-none"
             style={{ fontFamily: 'Syne, sans-serif' }}
           >
             {activeItem?.label ?? 'Dashboard'}
@@ -514,10 +514,7 @@ function MobileCommandPill() {
                     >
                       <Settings className="w-3.5 h-3.5" />
                       Settings
-                    </button>
-                    <div className="scale-90 origin-right">
-                      <UserSwitcher />
-                    </div>
+                    </button>                    
                   </motion.div>
                 </motion.div>
               )}
