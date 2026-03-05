@@ -69,15 +69,9 @@ class DashboardService {
   async getDashboardStats(): Promise<DashboardStats> {
     // Since backend doesn't have a dedicated stats endpoint,
     // we'll calculate from existing data
-    const [tasksRes, meetingsRes, usersRes] = await Promise.all([
-        API.get<Task[]>('/tasks'),
-        API.get<Meeting[]>('/minutes'),
-        API.get<any[]>('/users') 
-      ]);
-
-    const tasks = tasksRes.data;
-    const meetings = meetingsRes.data;
-    const users = usersRes.data;
+    const tasks    = (await API.get('/tasks'))   as unknown as Task[];
+    const meetings = (await API.get('/minutes')) as unknown as Meeting[];
+    const users    = (await API.get('/users'))   as unknown as any[];
     
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter((t: Task) => t.status === 'COMPLETED').length;
@@ -107,8 +101,9 @@ class DashboardService {
 
   // Get recent tasks
   async getRecentTasks(limit: number = 5): Promise<Task[]> {
-    const tasks: Task[] = await API.get('/tasks');
-    
+    const raw = (await API.get('/tasks')) as unknown as any;
+    const tasks: Task[] = Array.isArray(raw) ? raw : (raw?.tasks ?? raw?.data ?? []);
+
     // Sort by due date (soonest first) and limit
     return tasks
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
@@ -121,7 +116,8 @@ class DashboardService {
 
   // Get upcoming meetings
   async getUpcomingMeetings(limit: number = 3): Promise<Meeting[]> {
-    const meetings: Meeting[] = await API.get('/minutes');
+    const raw = (await API.get('/minutes')) as unknown as any;
+    const meetings: Meeting[] = Array.isArray(raw) ? raw : (raw?.minutes ?? raw?.data ?? []);
     const today = new Date();
     
     return meetings

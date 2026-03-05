@@ -1,29 +1,18 @@
 // src/components/tasks/create-task-modal.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Calendar, Target, Flame, Zap, Minus, Plus, CheckCircle } from 'lucide-react'
+import { X, Calendar, Target, Flame, Zap, Minus, Plus, CheckCircle, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
-
-const executives = [
-  { id: 1, name: 'Treasurer',         initials: 'TR', color: '#3b82f6' },
-  { id: 2, name: 'Secretary',         initials: 'SC', color: '#10b981' },
-  { id: 3, name: 'PRO',               initials: 'PR', color: '#a78bfa' },
-  { id: 4, name: 'Social Media Head', initials: 'SM', color: '#f472b6' },
-  { id: 5, name: 'Academic Head',     initials: 'AH', color: '#f59e0b' },
-]
-
-const goals = [
-  { id: 1, title: 'Department Orientation 2024' },
-  { id: 2, title: 'Faculty Accreditation' },
-  { id: 3, title: 'Alumni Networking Event' },
-]
+import { tasksService } from '@/services/tasks'
+import { userService } from '@/services/user'
+import { goalsService } from '@/services/goals'
 
 const PRIORITIES = [
-  { value: 'high',   Icon: Flame, label: 'High',   accent: '#f43f5e', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-rose-500/50 bg-rose-500/12 shadow-[0_0_22px_rgba(244,63,94,0.22)]' },
-  { value: 'medium', Icon: Zap,   label: 'Medium', accent: '#f59e0b', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-amber-500/50 bg-amber-500/12 shadow-[0_0_22px_rgba(245,158,11,0.22)]' },
-  { value: 'low',    Icon: Minus, label: 'Low',    accent: '#6b7280', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-white/25 bg-white/[0.07] shadow-none' },
+  { value: 'HIGH',   Icon: Flame, label: 'High',   accent: '#f43f5e', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-rose-500/50 bg-rose-500/12 shadow-[0_0_22px_rgba(244,63,94,0.22)]' },
+  { value: 'MEDIUM', Icon: Zap,   label: 'Medium', accent: '#f59e0b', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-amber-500/50 bg-amber-500/12 shadow-[0_0_22px_rgba(245,158,11,0.22)]' },
+  { value: 'LOW',    Icon: Minus, label: 'Low',    accent: '#6b7280', base: 'border-white/[0.07] bg-white/[0.03]', glow: 'border-white/25 bg-white/[0.07] shadow-none' },
 ]
 
 interface CreateTaskModalProps {
@@ -41,34 +30,55 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 export default function CreateTaskModal({ isOpen, onClose, onCreateTask }: CreateTaskModalProps) {
-  const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '', dueDate: '', priority: 'medium', goalId: '' })
+  const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '', dueDate: '', priority: 'MEDIUM', goalId: '' })
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
+  const [users, setUsers] = useState<{ id: string; name: string; position: string }[]>([])
+  const [goals, setGoals] = useState<{ id: string; title: string }[]>([])
 
   const set = (key: string, val: string) => setFormData(p => ({ ...p, [key]: val }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch users and goals when modal opens
+  useEffect(() => {
+    if (!isOpen) return
+    userService.getAllUsers()
+      .then(data => {
+        const raw = Array.isArray(data) ? data : (data as any)?.users ?? (data as any)?.data ?? []
+        setUsers(raw.map((u: any) => ({ id: u.id ?? u._id, name: u.name, position: u.position })))
+      })
+      .catch(() => {})
+    goalsService.getDashboardGoals()
+      .then((data: any[]) => setGoals(data.map(g => ({ id: g.id ?? g._id, title: g.title }))))
+      .catch(() => {})
+  }, [isOpen])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.assignedTo) return
+    setError('')
     setSubmitting(true)
 
-    const exec = executives.find(ex => ex.name === formData.assignedTo) ?? executives[0]
-    const newTask = {
-      id: Date.now(), title: formData.title, description: formData.description,
-      assignedTo: exec, dueDate: formData.dueDate ? new Date(formData.dueDate) : new Date(),
-      priority: formData.priority, status: 'pending', progress: 0,
-    }
-
-    setTimeout(() => {
+    try {
+      const created = await tasksService.createTask({
+        title:       formData.title,
+        description: formData.description,
+        assignedTo:  formData.assignedTo,
+        dueDate:     formData.dueDate,
+        priority:    formData.priority as 'LOW' | 'MEDIUM' | 'HIGH',
+      })
       setDone(true)
       setTimeout(() => {
-        onCreateTask(newTask)
-        setFormData({ title: '', description: '', assignedTo: '', dueDate: '', priority: 'medium', goalId: '' })
+        onCreateTask(created)
+        setFormData({ title: '', description: '', assignedTo: '', dueDate: '', priority: 'MEDIUM', goalId: '' })
         setSubmitting(false)
         setDone(false)
         onClose()
       }, 700)
-    }, 500)
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to create task. Please try again.')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -114,6 +124,14 @@ export default function CreateTaskModal({ isOpen, onClose, onCreateTask }: Creat
             {/* Form */}
             <form onSubmit={handleSubmit} className="px-7 py-6 space-y-5 overflow-y-auto max-h-[70vh]">
 
+              {/* Error banner */}
+              {error && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+
               {/* Title */}
               <div>
                 <Label>Task Title *</Label>
@@ -132,31 +150,29 @@ export default function CreateTaskModal({ isOpen, onClose, onCreateTask }: Creat
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                {/* Assignee avatar chips */}
+                {/* Assignee chips — real users from API */}
                 <div>
                   <Label>Assign To Executive *</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {executives.map(exec => (
-                      <motion.button key={exec.id} type="button" whileTap={{ scale: 0.92 }}
-                        onClick={() => set('assignedTo', exec.name)}
-                        className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200
-                          ${formData.assignedTo === exec.name
-                            ? 'border-[1.5px] text-white'
-                            : 'border-white/[0.08] bg-white/[0.03] text-white/40 hover:text-white/70 hover:bg-white/[0.06]'
-                          }`}
-                        style={formData.assignedTo === exec.name ? {
-                          borderColor: exec.color,
-                          background: exec.color + '18',
-                          boxShadow: `0 4px 16px ${exec.color}28`,
-                        } : {}}>
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black"
-                          style={{ background: exec.color + '28', color: exec.color }}>
-                          {exec.initials}
-                        </div>
-                        {exec.name}
-                      </motion.button>
-                    ))}
-                  </div>
+                  {users.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {users.map(user => (
+                        <motion.button key={user.id} type="button" whileTap={{ scale: 0.92 }}
+                          onClick={() => set('assignedTo', user.id)}
+                          className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200
+                            ${formData.assignedTo === user.id
+                              ? 'border-emerald-500/60 bg-emerald-500/12 text-white shadow-[0_4px_16px_rgba(13,124,61,0.25)]'
+                              : 'border-white/[0.08] bg-white/[0.03] text-white/40 hover:text-white/70 hover:bg-white/[0.06]'
+                            }`}>
+                          <div className="w-5 h-5 rounded-full bg-[#0d7c3d]/30 flex items-center justify-center text-[9px] font-black text-emerald-400">
+                            {user.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          {user.name}
+                        </motion.button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/30 py-2">Loading members…</p>
+                  )}
                 </div>
 
                 {/* Due Date */}
@@ -186,18 +202,20 @@ export default function CreateTaskModal({ isOpen, onClose, onCreateTask }: Creat
                   </div>
                 </div>
 
-                {/* Related goal */}
-                <div>
-                  <Label>Related Goal (Optional)</Label>
-                  <div className="relative">
-                    <Target className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/45" />
-                    <select value={formData.goalId} onChange={e => set('goalId', e.target.value)}
-                      className={`${inputCls} pl-10 appearance-none cursor-pointer`}>
-                      <option value="" className="bg-[#07150f]">Select goal (optional)</option>
-                      {goals.map(g => <option key={g.id} value={g.id} className="bg-[#07150f]">{g.title}</option>)}
-                    </select>
+                {/* Related goal — only shown if goals available */}
+                {goals.length > 0 && (
+                  <div>
+                    <Label>Related Goal (Optional)</Label>
+                    <div className="relative">
+                      <Target className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400/45" />
+                      <select value={formData.goalId} onChange={e => set('goalId', e.target.value)}
+                        className={`${inputCls} pl-10 appearance-none cursor-pointer`}>
+                        <option value="" className="bg-[#07150f]">Select goal (optional)</option>
+                        {goals.map(g => <option key={g.id} value={g.id} className="bg-[#07150f]">{g.title}</option>)}
+                      </select>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Footer */}

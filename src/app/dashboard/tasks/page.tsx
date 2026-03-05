@@ -3,6 +3,7 @@
 
 import { authService } from '@/services/auth'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Plus, Calendar, MoreVertical, CheckSquare,
@@ -85,6 +86,7 @@ function StatChip({ value, label, color, delay = 0 }: { value: number; label: st
 
 /* ═══════════════════════════════════════════════════ ROOT ═══ */
 export default function TasksPage() {
+  const searchParams = useSearchParams()
   const [view, setView] = useState('list')
   const [tasks, setTasks] = useState(initialTasks)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -93,6 +95,13 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPosition, setSelectedPosition] = useState('All Positions')
   const positions = Array.from(new Set(executives.map(e => e.name))).sort()
+
+  // Auto-open create modal when navigated here with ?new=true
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
+      setIsCreateModalOpen(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const check = () => {

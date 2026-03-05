@@ -189,7 +189,7 @@ export default function RecentTasks() {
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-white/[0.05]">
-          <Link href="/dashboard/tasks/create">
+          <Link href="/dashboard/tasks?new=true">
             <motion.div
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
