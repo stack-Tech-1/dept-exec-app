@@ -1,14 +1,17 @@
-import { currentUser, ROLES } from './constants';
+import { ROLES } from './constants';
+import { authService } from '@/services/auth';
 
 // Helper functions for role checking
-export const canCreateTask = () => currentUser.role === ROLES.ADMIN;
-export const canAssignTask = () => currentUser.role === ROLES.ADMIN;
-export const canCreateGoal = () => currentUser.role === ROLES.ADMIN;
-export const canCreateMeeting = () => currentUser.role === ROLES.ADMIN;
-export const canUploadMinutes = () => currentUser.role === ROLES.ADMIN;
-export const canViewUsers = () => currentUser.role === ROLES.ADMIN;
-export const canEditDueDate = () => currentUser.role === ROLES.ADMIN;
-export const canReassignTask = () => currentUser.role === ROLES.ADMIN;
+const getCurrentUserRole = () => authService.getCurrentUser()?.role;
+
+export const canCreateTask = () => getCurrentUserRole() === ROLES.ADMIN;
+export const canAssignTask = () => getCurrentUserRole() === ROLES.ADMIN;
+export const canCreateGoal = () => getCurrentUserRole() === ROLES.ADMIN;
+export const canCreateMeeting = () => getCurrentUserRole() === ROLES.ADMIN;
+export const canUploadMinutes = () => getCurrentUserRole() === ROLES.ADMIN;
+export const canViewUsers = () => getCurrentUserRole() === ROLES.ADMIN;
+export const canEditDueDate = () => getCurrentUserRole() === ROLES.ADMIN;
+export const canReassignTask = () => getCurrentUserRole() === ROLES.ADMIN;
 
 // What EXEC can do
 export const canUpdateTaskStatus = () => true; // Both roles can do this
