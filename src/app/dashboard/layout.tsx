@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import DashboardSidebar from '@/components/layout/dashboard-sidebar'
 import DashboardHeader from '@/components/layout/dashboard-header'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 /* ─── Animated SVG mesh background ──────────────── */
 function MeshBackground() {
@@ -118,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex-1 py-4 px-2 sm:py-5 sm:px-3 md:px-4 lg:px-6"
           >
             <div className="max-w-[1400px] mx-auto">
-              {children}
+              <ErrorBoundary>{children}</ErrorBoundary>
             </div>
           </motion.main>
 

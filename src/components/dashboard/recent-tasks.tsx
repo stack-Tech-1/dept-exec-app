@@ -133,21 +133,14 @@ function TaskSkeleton() {
 /* ═══════════════════════════════════════════════════
    ROOT EXPORT
 ═══════════════════════════════════════════════════ */
-const FALLBACK_TASKS: Task[] = [
-  { id:'1', title:'Prepare budget proposal for faculty board', description:'', assignedTo:{id:'1',name:'Treasurer',email:''}, createdBy:{id:'1',name:'Admin',email:''}, dueDate:'2024-12-15', status:'IN_PROGRESS', priority:'HIGH', progress:75 },
-  { id:'2', title:'Draft agenda for executive meeting', description:'', assignedTo:{id:'2',name:'Secretary',email:''}, createdBy:{id:'1',name:'Admin',email:''}, dueDate:'2024-12-10', status:'PENDING', priority:'MEDIUM', progress:30 },
-  { id:'3', title:'Coordinate with guest speaker for orientation', description:'', assignedTo:{id:'3',name:'PRO',email:''}, createdBy:{id:'1',name:'Admin',email:''}, dueDate:'2024-12-05', status:'OVERDUE', priority:'HIGH', progress:90 },
-  { id:'4', title:'Update department social media handles', description:'', assignedTo:{id:'4',name:'Social Media Head',email:''}, createdBy:{id:'1',name:'Admin',email:''}, dueDate:'2024-12-20', status:'COMPLETED', priority:'LOW', progress:100 },
-]
-
 export default function RecentTasks() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     dashboardService.getRecentTasks(4)
-      .then(data => setTasks(data.length ? data : FALLBACK_TASKS))
-      .catch(() => setTasks(FALLBACK_TASKS))
+      .then(data => setTasks(data))
+      .catch(() => setTasks([]))
       .finally(() => setLoading(false))
   }, [])
 
@@ -181,7 +174,16 @@ export default function RecentTasks() {
         <div className="divide-y divide-white/[0.04]">
           {loading
             ? [0,1,2,3].map(i => <TaskSkeleton key={i} />)
-            : tasks.map((task, i) => <TaskRow key={task.id} task={task} index={i} />)
+            : tasks.length === 0
+              ? (
+                <div className="py-12 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/[0.04] flex items-center justify-center">
+                    <CheckSquare className="w-6 h-6 text-white/20" />
+                  </div>
+                  <p className="text-sm text-white/30">No tasks yet</p>
+                </div>
+              )
+              : tasks.map((task, i) => <TaskRow key={task.id} task={task} index={i} />)
           }
         </div>
 

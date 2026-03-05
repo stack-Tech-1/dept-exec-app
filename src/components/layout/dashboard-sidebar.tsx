@@ -1,7 +1,9 @@
 // src/components/layout/dashboard-sidebar.tsx
 'use client'
 
-import { ROLES, currentUser } from '@/lib/constants'
+import { ROLES } from '@/lib/constants'
+import { authService } from '@/services/auth'
+import { notificationsService } from '@/services/notifications'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -9,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, CheckSquare, Target, Calendar,
   Users, FileText, Bell, Settings, X, Cpu, BarChart3,
-  ChevronRight, Zap
+  ChevronRight, Zap, HelpCircle
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
@@ -77,7 +79,7 @@ function DesktopNavLink({ item, isActive }: { item: NavItem; isActive: boolean }
 
         <span className="relative z-10 flex-1 truncate tracking-wide">{item.name}</span>
 
-        {item.badge !== undefined && (
+        {item.badge !== undefined && item.badge > 0 && (
           <span className={`relative z-10 min-w-[20px] text-center text-[10px] font-bold rounded-full px-1.5 py-0.5
             ${isActive ? 'bg-white/20 text-white' : 'bg-[#0d7c3d] text-white'}`}>
             {item.badge}
@@ -102,13 +104,19 @@ function DesktopNavLink({ item, isActive }: { item: NavItem; isActive: boolean }
    MOBILE SIDEBAR — Radial arc sweep drawer
 ═══════════════════════════════════════════════════ */
 function MobileSidebar({
-  open, onClose, navigation, pathname
+  open, onClose, navigation, pathname, user, unreadCount
 }: {
   open: boolean
   onClose: () => void
   navigation: NavItem[]
   pathname: string
+  user: { name: string; position: string } | null
+  unreadCount: number
 }) {
+  const initials = user?.name
+    ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'GS'
+
   return (
     <AnimatePresence>
       {open && (
@@ -175,14 +183,14 @@ function MobileSidebar({
                 <Avatar className="h-10 w-10 ring-2 ring-[#0d7c3d]/60">
                   <AvatarImage src="/avatar.jpg" />
                   <AvatarFallback className="bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] text-white text-sm font-bold">
-                    GS
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#051208] rounded-full" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-white text-sm font-semibold truncate">General Secretary</p>
-                <p className="text-[#5aad7a] text-[11px] truncate">Administrator · Online</p>
+                <p className="text-white text-sm font-semibold truncate">{user?.name ?? 'Loading...'}</p>
+                <p className="text-[#5aad7a] text-[11px] truncate">{user?.position ?? ''} · Online</p>
               </div>
               <PulseDot />
             </motion.div>
@@ -212,7 +220,7 @@ function MobileSidebar({
                         )}
                         <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-white' : 'text-[#5aad7a]'}`} />
                         <span className="flex-1 truncate">{item.name}</span>
-                        {item.badge !== undefined && (
+                        {item.badge !== undefined && item.badge > 0 && (
                           <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5
                             ${isActive ? 'bg-white/20 text-white' : 'bg-[#0d7c3d] text-white'}`}>
                             {item.badge}
@@ -228,8 +236,9 @@ function MobileSidebar({
             {/* Bottom links */}
             <div className="relative z-10 px-3 py-4 border-t border-white/[0.06] space-y-1">
               {[
-                { href: '/dashboard/notifications', icon: Bell, label: 'Notifications', badge: 3 },
+                { href: '/dashboard/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
                 { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
+                { href: '/dashboard/help', icon: HelpCircle, label: 'Help & Support' },
               ].map((item, i) => (
                 <motion.div
                   key={item.label}
@@ -242,7 +251,7 @@ function MobileSidebar({
                       text-[#7bc99a] hover:bg-white/[0.05] hover:text-white transition-all duration-200 cursor-pointer">
                       <item.icon className="h-[18px] w-[18px] text-[#5aad7a]" />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {item.badge && (
+                      {item.badge !== undefined && item.badge > 0 && (
                         <span className="bg-[#0d7c3d] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
                           {item.badge}
                         </span>
@@ -262,7 +271,18 @@ function MobileSidebar({
 /* ═══════════════════════════════════════════════════
    DESKTOP SIDEBAR
 ═══════════════════════════════════════════════════ */
-function DesktopSidebar({ navigation, pathname }: { navigation: NavItem[]; pathname: string }) {
+function DesktopSidebar({
+  navigation, pathname, user, unreadCount
+}: {
+  navigation: NavItem[]
+  pathname: string
+  user: { name: string; position: string } | null
+  unreadCount: number
+}) {
+  const initials = user?.name
+    ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'GS'
+
   return (
     <aside className="sidebar hidden lg:flex fixed inset-y-0 left-0 z-50 w-64 flex-col
       bg-[#061510] border-r border-white/[0.05]">
@@ -296,14 +316,14 @@ function DesktopSidebar({ navigation, pathname }: { navigation: NavItem[]; pathn
             <Avatar className="h-9 w-9 ring-2 ring-[#0d7c3d]/50">
               <AvatarImage src="/avatar.jpg" />
               <AvatarFallback className="bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] text-white text-xs font-bold">
-                GS
+                {initials}
               </AvatarFallback>
             </Avatar>
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#061510] rounded-full" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-white text-xs font-semibold truncate">General Secretary</p>
-            <p className="text-[#4a9966] text-[10px] truncate">Administrator</p>
+            <p className="text-white text-xs font-semibold truncate">{user?.name ?? 'Loading...'}</p>
+            <p className="text-[#4a9966] text-[10px] truncate">{user?.position ?? ''}</p>
           </div>
           <PulseDot />
         </div>
@@ -321,8 +341,9 @@ function DesktopSidebar({ navigation, pathname }: { navigation: NavItem[]; pathn
       {/* Bottom section */}
       <div className="relative z-10 px-3 py-3 border-t border-white/[0.05] space-y-0.5">
         {[
-          { href: '/dashboard/notifications', icon: Bell, label: 'Notifications', badge: 3 },
+          { href: '/dashboard/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
           { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
+          { href: '/dashboard/help', icon: HelpCircle, label: 'Help & Support' },
         ].map((item) => {
           const isActive = pathname === item.href
           return (
@@ -335,7 +356,7 @@ function DesktopSidebar({ navigation, pathname }: { navigation: NavItem[]; pathn
               >
                 <item.icon className={`h-[18px] w-[18px] ${isActive ? 'text-emerald-300' : 'text-[#5aad7a]'}`} />
                 <span className="flex-1 truncate">{item.label}</span>
-                {item.badge && (
+                {item.badge !== undefined && item.badge > 0 && (
                   <span className="bg-[#0d7c3d] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
                     {item.badge}
                   </span>
@@ -363,10 +384,22 @@ function DesktopSidebar({ navigation, pathname }: { navigation: NavItem[]; pathn
 export default function DashboardSidebar() {
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [authUser, setAuthUser] = useState<{ name: string; position: string; role: string } | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
 
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => setSidebarOpen(false), [pathname])
+
+  useEffect(() => {
+    if (!mounted) return
+    const user = authService.getCurrentUser()
+    if (user) setAuthUser({ name: user.name, position: user.position, role: user.role })
+
+    notificationsService.getUnreadCount()
+      .then(count => setUnreadCount(count))
+      .catch(() => {})
+  }, [mounted])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -387,6 +420,8 @@ export default function DashboardSidebar() {
 
   if (!mounted) return null
 
+  const isAdmin = authUser?.role === ROLES.ADMIN
+
   const navigation: NavItem[] = [
     { name: 'Dashboard', href: '/dashboard',            icon: LayoutDashboard },
     { name: 'Tasks',     href: '/dashboard/tasks',      icon: CheckSquare },
@@ -394,7 +429,7 @@ export default function DashboardSidebar() {
     { name: 'Meetings',  href: '/dashboard/meetings',   icon: Calendar },
     { name: 'Minutes',   href: '/dashboard/minutes',    icon: FileText },
     { name: 'Reports',   href: '/dashboard/reports',    icon: BarChart3 },
-    ...(currentUser.role === ROLES.ADMIN
+    ...(isAdmin
       ? [{ name: 'Members', href: '/dashboard/users', icon: Users }]
       : []),
   ]
@@ -404,13 +439,15 @@ export default function DashboardSidebar() {
       {/* Google Fonts (Syne) */}
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap');`}</style>
 
-      <DesktopSidebar navigation={navigation} pathname={pathname} />
+      <DesktopSidebar navigation={navigation} pathname={pathname} user={authUser} unreadCount={unreadCount} />
 
       <MobileSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         navigation={navigation}
         pathname={pathname}
+        user={authUser}
+        unreadCount={unreadCount}
       />
 
       {/* Mobile open button — only shown when drawer is closed */}

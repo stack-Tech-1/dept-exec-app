@@ -1,7 +1,7 @@
 // src/app/dashboard/tasks/page.tsx
 'use client'
 
-import { currentUser, ROLES } from '@/lib/constants'
+import { authService } from '@/services/auth'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -154,7 +154,7 @@ export default function TasksPage() {
             </h1>
             <p className="text-sm text-white/30 mt-1">Assign, track and manage all department tasks</p>
           </div>
-          {currentUser.role === ROLES.ADMIN && (
+          {authService.isAdmin() && (
             <motion.button whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
               onClick={() => setIsCreateModalOpen(true)}
               className="relative overflow-hidden inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl

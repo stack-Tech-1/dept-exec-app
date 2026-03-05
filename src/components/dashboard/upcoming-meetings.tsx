@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Video, MapPin, Users, Clock, Plus, ArrowRight, Zap } from 'lucide-react'
+import { Video, MapPin, Users, Clock, Plus, ArrowRight, Zap, Calendar } from 'lucide-react'
 import { dashboardService, Meeting } from '@/services/dashboard'
 import { format } from 'date-fns'
 import Link from 'next/link'
@@ -148,7 +148,7 @@ function MeetingItem({ meeting, index, isLast }: { meeting: Meeting; index: numb
 }
 
 /* ─── Skeleton ───────────────────────────────────── */
-function MeetingSkeleton({ index }: { index: number }) {
+function MeetingSkeleton() {
   return (
     <div className="flex gap-4 animate-pulse">
       <div className="w-8 h-8 rounded-xl bg-white/[0.05] shrink-0" />
@@ -166,20 +166,14 @@ function MeetingSkeleton({ index }: { index: number }) {
 /* ═══════════════════════════════════════════════════
    ROOT EXPORT
 ═══════════════════════════════════════════════════ */
-const FALLBACK: Meeting[] = [
-  { id:'1', title:'Executive Committee Meeting', date:'2024-12-15T14:00:00', time:'14:00', venue:'cs-dept/exec-meeting', approved:false, createdBy:{id:'1',name:'Admin'}, session:'2024/2025', semester:'First Semester' },
-  { id:'2', title:'Faculty Advisor Briefing', date:'2024-12-18T10:00:00', time:'10:00', venue:'CS Conference Room', approved:false, createdBy:{id:'1',name:'Admin'}, session:'2024/2025', semester:'First Semester' },
-  { id:'3', title:'Department Orientation Planning', date:'2024-12-20T15:30:00', time:'15:30', venue:'Zoom + Room 302', approved:false, createdBy:{id:'1',name:'Admin'}, session:'2024/2025', semester:'First Semester' },
-]
-
 export default function UpcomingMeetings() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     dashboardService.getUpcomingMeetings(3)
-      .then(data => setMeetings(data.length ? data : FALLBACK))
-      .catch(() => setMeetings(FALLBACK))
+      .then(data => setMeetings(data))
+      .catch(() => setMeetings([]))
       .finally(() => setLoading(false))
   }, [])
 
@@ -207,10 +201,19 @@ export default function UpcomingMeetings() {
         {/* Timeline */}
         <div className="px-5 pt-5 pb-2 max-h-[480px] overflow-y-auto">
           {loading
-            ? [0,1,2].map(i => <MeetingSkeleton key={i} index={i} />)
-            : meetings.map((m, i) => (
-                <MeetingItem key={m.id} meeting={m} index={i} isLast={i === meetings.length - 1} />
-              ))
+            ? [0,1,2].map(i => <MeetingSkeleton key={i} />)
+            : meetings.length === 0
+              ? (
+                <div className="py-12 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/[0.04] flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-white/20" />
+                  </div>
+                  <p className="text-sm text-white/30">No upcoming meetings</p>
+                </div>
+              )
+              : meetings.map((m, i) => (
+                  <MeetingItem key={m.id} meeting={m} index={i} isLast={i === meetings.length - 1} />
+                ))
           }
         </div>
 

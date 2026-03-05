@@ -156,9 +156,9 @@ export default function DashboardStats() {
         setStats(data)
       } catch {
         setStats({
-          totalTasks: 24, completedTasks: 12, overdueTasks: 3,
-          pendingTasks: 6, inProgressTasks: 3, totalMembers: 15,
-          upcomingMeetings: 4, pendingMinutes: 2,
+          totalTasks: 0, completedTasks: 0, overdueTasks: 0,
+          pendingTasks: 0, inProgressTasks: 0, totalMembers: 0,
+          upcomingMeetings: 0, pendingMinutes: 0,
         })
       } finally {
         setLoading(false)
