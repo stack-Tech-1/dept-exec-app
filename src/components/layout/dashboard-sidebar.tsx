@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, CheckSquare, Target, Calendar,
-  Users, FileText, Bell, Settings, X, Cpu, BarChart3,
+  Users, Users2, FileText, Bell, Settings, X, Cpu, BarChart3,
   ChevronRight, Zap, HelpCircle
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -430,7 +430,10 @@ export default function DashboardSidebar() {
     { name: 'Minutes',   href: '/dashboard/minutes',    icon: FileText },
     { name: 'Reports',   href: '/dashboard/reports',    icon: BarChart3 },
     ...(isAdmin
-      ? [{ name: 'Members', href: '/dashboard/users', icon: Users }]
+      ? [
+          { name: 'Users',   href: '/dashboard/users',   icon: Users  },
+          { name: 'Members', href: '/dashboard/members', icon: Users2 },
+        ]
       : []),
   ]
 
