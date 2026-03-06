@@ -124,7 +124,8 @@ export default function TasksPage() {
       try {
         setLoading(true)
         const raw = await tasksService.getTasks()
-        const list: Task[] = Array.isArray(raw) ? raw : ((raw as any)?.tasks ?? (raw as any)?.data ?? [])
+        const raw_list: Task[] = Array.isArray(raw) ? raw : ((raw as any)?.tasks ?? (raw as any)?.data ?? [])
+        const list = raw_list.map((t: any) => ({ ...t, id: t._id ?? t.id }))
         setTasks(list)
       } catch (err) {
         console.error('Failed to load tasks:', err)
@@ -155,12 +156,17 @@ export default function TasksPage() {
     return () => clearInterval(id)
   }, [])
 
-  const handleCreateTask = (newTask: Task) => setTasks(prev => [newTask, ...prev])
+  const handleCreateTask = (newTask: Task) => {
+    const normalized = { ...newTask, id: (newTask as any)._id ?? newTask.id }
+    setTasks(prev => [normalized, ...prev])
+  }
 
-  const handleStatusUpdate = async (taskId: string, newStatus: string) => {
+  const handleStatusUpdate = async (rawId: string, newStatus: string) => {
+    if (!rawId) { console.error('Task ID is undefined — cannot proceed'); return }
     try {
-      const updated = await tasksService.updateTaskStatus(taskId, { status: newStatus as any })
-      setTasks(prev => prev.map(t => t.id === taskId ? updated : t))
+      const updated = await tasksService.updateTaskStatus(rawId, { status: newStatus as any })
+      const normalizedUpdate = { ...updated as any, id: (updated as any)._id ?? (updated as any).id }
+      setTasks(prev => prev.map(t => t.id === rawId ? normalizedUpdate : t))
     } catch (err) {
       console.error('Failed to update task status:', err)
     }
@@ -379,7 +385,7 @@ export default function TasksPage() {
                     const avatarColor = getAvatarColor(task.assignedTo.name)
 
                     return (
-                      <motion.tr key={task.id}
+                      <motion.tr key={task._id ?? task.id}
                         initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.05 + i * 0.055 }}
                         onClick={() => openPanel(task)}
@@ -435,7 +441,7 @@ export default function TasksPage() {
                           <div className="flex items-center gap-1.5">
                             {updates.length > 0 && (
                               <div className="relative" onClick={e => e.stopPropagation()}>
-                                <select value="" onChange={e => handleStatusUpdate(task.id, e.target.value)}
+                                <select value="" onChange={e => handleStatusUpdate(task._id ?? task.id, e.target.value)}
                                   className="appearance-none pl-3 pr-6 py-1.5 rounded-xl text-[11px] font-bold
                                     bg-[#0d7c3d]/12 border border-[#0d7c3d]/22 text-emerald-400
                                     outline-none cursor-pointer hover:bg-[#0d7c3d]/22 transition-colors">
