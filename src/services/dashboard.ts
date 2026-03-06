@@ -76,7 +76,7 @@ class DashboardService {
       inProgressTasks: raw.tasks?.inProgress  ?? 0,
       totalMembers:    raw.users?.total       ?? 0,
       upcomingMeetings: raw.upcomingMeetings  ?? 0,
-      pendingMinutes:  0,
+      pendingMinutes:  raw.pendingMinutes ?? 0,
       totalGoals:      raw.goals?.total       ?? 0,
       activeGoals:     raw.goals?.inProgress  ?? 0,
     };

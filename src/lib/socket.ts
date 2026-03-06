@@ -16,7 +16,9 @@ class SocketService {
   connect() {
     if (this.socket?.connected) return;
     
-    this.socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+    const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL ||
+      (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace('/api', '');
+    this.socket = io(baseUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });
@@ -27,7 +29,7 @@ class SocketService {
       // Join user-specific room
       const user = authService.getCurrentUser();
       if (user?.id) {
-        this.socket?.emit('join-user', user.id);
+        this.socket?.emit('join-user', { userId: user.id });
       }
     });
 

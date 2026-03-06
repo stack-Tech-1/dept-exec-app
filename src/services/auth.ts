@@ -92,9 +92,18 @@ class AuthService {
   isAuthenticated(): boolean {
     const token = this.getToken();
     if (!token) return false;
-    
-    // Optional: Add token expiration check here
-    return true;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const isExpired = payload.exp && Date.now() >= payload.exp * 1000;
+      if (isExpired) {
+        this.logout();
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Check role

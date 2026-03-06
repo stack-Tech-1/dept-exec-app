@@ -48,6 +48,8 @@ API.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('dept_exec_token');
       localStorage.removeItem('dept_exec_user');
+      document.cookie = 'dept_exec_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+      document.cookie = 'dept_exec_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
       window.location.href = '/login';
     }
     

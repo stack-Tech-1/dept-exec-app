@@ -28,7 +28,7 @@ class SearchService {
     try {
       const response = await API.get('/search', {
         params: { q: query, limit, offset, types }
-      })
+      }) as any
       return response as SearchResponse
     } catch (error: any) {
       console.error('Search failed:', error)
