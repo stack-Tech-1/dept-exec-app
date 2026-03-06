@@ -96,7 +96,7 @@ function StatChip({ value, label, color, delay = 0 }: { value: number; label: st
 export default function TasksPage() {
   const searchParams = useSearchParams()
   const [view, setView] = useState('list')
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasks, setTasks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('All Status')
@@ -118,21 +118,44 @@ export default function TasksPage() {
   // Derive unique assignee names from loaded tasks
   const assigneeNames = Array.from(new Set(tasks.map(t => t.assignedTo.name))).sort()
 
+  // Normalize a raw task from the API into the shape this page expects
+  const normalizeTask = (t: any) => ({
+    ...t,
+    id: t._id || t.id,
+    status: t.status || 'PENDING',
+    priority: t.priority || 'MEDIUM',
+    assignedTo: {
+      ...t.assignedTo,
+      id: t.assignedTo?._id || t.assignedTo?.id,
+      name: t.assignedTo?.name || 'Unknown',
+    },
+    createdBy: {
+      ...t.createdBy,
+      id: t.createdBy?._id || t.createdBy?.id,
+    },
+    progress: t.progress ?? 0,
+    dueDate: t.dueDate
+      ? (typeof t.dueDate === 'string' ? t.dueDate : new Date(t.dueDate).toISOString())
+      : new Date().toISOString(),
+  })
+
+  // Fetch + normalize tasks (extracted so handleStatusUpdate can call it for refresh)
+  const fetchTasks = async () => {
+    try {
+      setLoading(true)
+      const raw = await tasksService.getTasks() as any
+      const data: any[] = Array.isArray(raw) ? raw : (raw?.tasks ?? raw?.data ?? [])
+      setTasks(data.map(normalizeTask))
+    } catch (err) {
+      console.error('Failed to fetch tasks:', err)
+      setTasks([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Fetch tasks on mount
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        setLoading(true)
-        const raw = await tasksService.getTasks()
-        const raw_list: Task[] = Array.isArray(raw) ? raw : ((raw as any)?.tasks ?? (raw as any)?.data ?? [])
-        const list = raw_list.map((t: any) => ({ ...t, id: t._id ?? t.id }))
-        setTasks(list)
-      } catch (err) {
-        console.error('Failed to load tasks:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchTasks()
   }, [])
 
@@ -156,17 +179,15 @@ export default function TasksPage() {
     return () => clearInterval(id)
   }, [])
 
-  const handleCreateTask = (newTask: Task) => {
-    const normalized = { ...newTask, id: (newTask as any)._id ?? newTask.id }
-    setTasks(prev => [normalized, ...prev])
+  const handleCreateTask = (newTask: any) => {
+    setTasks(prev => [normalizeTask(newTask), ...prev])
   }
 
   const handleStatusUpdate = async (rawId: string, newStatus: string) => {
-    if (!rawId) { console.error('Task ID is undefined — cannot proceed'); return }
+    if (!rawId || rawId === 'undefined') { console.error('Task ID is undefined — cannot proceed'); return }
     try {
-      const updated = await tasksService.updateTaskStatus(rawId, { status: newStatus as any })
-      const normalizedUpdate = { ...updated as any, id: (updated as any)._id ?? (updated as any).id }
-      setTasks(prev => prev.map(t => t.id === rawId ? normalizedUpdate : t))
+      await tasksService.updateTaskStatus(rawId, { status: newStatus as any })
+      await fetchTasks()
     } catch (err) {
       console.error('Failed to update task status:', err)
     }
