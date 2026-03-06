@@ -18,10 +18,12 @@ import CreateTaskModal from '@/components/tasks/create-task-modal'
 
 /* ─── Avatar helpers ─────────────────────────────── */
 function getInitials(name: string) {
+  if (!name || typeof name !== 'string') return '?'
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 const AVATAR_COLORS = ['#3b82f6', '#10b981', '#a78bfa', '#f472b6', '#f59e0b', '#ef4444', '#06b6d4']
 function getAvatarColor(name: string) {
+  if (!name || typeof name !== 'string') return AVATAR_COLORS[0]
   let hash = 0
   for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff
   return AVATAR_COLORS[hash % AVATAR_COLORS.length]
@@ -116,7 +118,7 @@ export default function TasksPage() {
   const isAdmin = authService.isAdmin()
 
   // Derive unique assignee names from loaded tasks
-  const assigneeNames = Array.from(new Set(tasks.map(t => t.assignedTo.name))).sort()
+  const assigneeNames = Array.from(new Set(tasks.map(t => t.assignedTo?.name ?? 'Unknown'))).filter(Boolean).sort()
 
   // Normalize a raw task from the API into the shape this page expects
   const normalizeTask = (t: any) => ({
@@ -281,8 +283,8 @@ export default function TasksPage() {
   const filteredTasks = tasks.filter(t => {
     const ms = selectedStatus === 'All Status' || t.status === STATUS_LABEL_TO_KEY[selectedStatus]
     const mp = selectedPriority === 'All Priorities' || t.priority === selectedPriority.toUpperCase()
-    const mq = !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.assignedTo.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const ma = selectedAssignee === 'All Assignees' || t.assignedTo.name === selectedAssignee
+    const mq = !searchQuery || (t.title ?? '').toLowerCase().includes(searchQuery.toLowerCase()) || (t.assignedTo?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+    const ma = selectedAssignee === 'All Assignees' || t.assignedTo?.name === selectedAssignee
     return ms && mp && mq && ma
   })
 
@@ -398,7 +400,7 @@ export default function TasksPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTasks.map((task, i) => {
+                  {(Array.isArray(filteredTasks) ? filteredTasks : []).map((task, i) => {
                     const sCfg = STATUS_CFG[task.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.PENDING
                     const pCfg = PRIORITY_CFG[task.priority as keyof typeof PRIORITY_CFG] ?? PRIORITY_CFG.LOW
                     const updates = getAvailableStatusUpdates(task.status)
@@ -440,7 +442,7 @@ export default function TasksPage() {
                         <td className="py-4 px-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${pCfg.pill}`}>
                             <pCfg.Icon className="w-3 h-3" />
-                            {task.priority[0] + task.priority.slice(1).toLowerCase()}
+                            {task.priority ? task.priority[0] + task.priority.slice(1).toLowerCase() : ''}
                           </span>
                         </td>
 
@@ -532,7 +534,7 @@ export default function TasksPage() {
                       </span>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${pCfg.pill}`}>
                         <pCfg.Icon className="w-3 h-3" />
-                        {selectedTask.priority[0] + selectedTask.priority.slice(1).toLowerCase()}
+                        {selectedTask.priority ? selectedTask.priority[0] + selectedTask.priority.slice(1).toLowerCase() : ''}
                       </span>
                     </div>
                     <h2 className="text-base font-bold text-white leading-snug" style={{ fontFamily: 'Syne, sans-serif' }}>{selectedTask.title}</h2>
