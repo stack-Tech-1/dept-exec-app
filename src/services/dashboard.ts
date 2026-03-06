@@ -67,35 +67,18 @@ export interface Goal {
 class DashboardService {
   // Get dashboard statistics
   async getDashboardStats(): Promise<DashboardStats> {
-    // Since backend doesn't have a dedicated stats endpoint,
-    // we'll calculate from existing data
-    const tasks    = (await API.get('/tasks'))   as unknown as Task[];
-    const meetings = (await API.get('/minutes')) as unknown as Meeting[];
-    const users    = (await API.get('/users'))   as unknown as any[];
-    
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter((t: Task) => t.status === 'COMPLETED').length;
-    const overdueTasks = tasks.filter((t: Task) => t.status === 'OVERDUE').length;
-    const pendingTasks = tasks.filter((t: Task) => t.status === 'PENDING').length;
-    const inProgressTasks = tasks.filter((t: Task) => t.status === 'IN_PROGRESS').length;
-    
-    const pendingMinutes = meetings.filter((m: Meeting) => !m.approved).length;
-    const upcomingMeetings = meetings.filter((m: Meeting) => {
-      const meetingDate = new Date(m.date);
-      const today = new Date();
-      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      return meetingDate >= today && meetingDate <= nextWeek;
-    }).length;
-
+    const raw = (await API.get('/reports/dashboard-summary')) as any;
     return {
-      totalTasks,
-      completedTasks,
-      overdueTasks,
-      pendingTasks,
-      inProgressTasks,
-      totalMembers: users.length,
-      upcomingMeetings,
-      pendingMinutes,
+      totalTasks:      raw.tasks?.total       ?? 0,
+      completedTasks:  raw.tasks?.completed   ?? 0,
+      overdueTasks:    raw.tasks?.overdue     ?? 0,
+      pendingTasks:    raw.tasks?.pending     ?? 0,
+      inProgressTasks: raw.tasks?.inProgress  ?? 0,
+      totalMembers:    raw.users?.total       ?? 0,
+      upcomingMeetings: raw.upcomingMeetings  ?? 0,
+      pendingMinutes:  0,
+      totalGoals:      raw.goals?.total       ?? 0,
+      activeGoals:     raw.goals?.inProgress  ?? 0,
     };
   }
 
@@ -116,8 +99,8 @@ class DashboardService {
 
   // Get upcoming meetings
   async getUpcomingMeetings(limit: number = 3): Promise<Meeting[]> {
-    const raw = (await API.get('/minutes')) as unknown as any;
-    const meetings: Meeting[] = Array.isArray(raw) ? raw : (raw?.minutes ?? raw?.data ?? []);
+    const raw = (await API.get('/meetings')) as unknown as any;
+    const meetings: Meeting[] = Array.isArray(raw) ? raw : (raw?.meetings ?? raw?.data ?? []);
     const today = new Date();
     
     return meetings

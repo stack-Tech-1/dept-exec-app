@@ -29,7 +29,7 @@ class SearchService {
       const response = await API.get('/search', {
         params: { q: query, limit, offset, types }
       })
-      return response.data
+      return response as SearchResponse
     } catch (error: any) {
       console.error('Search failed:', error)
       throw new Error(error.response?.data?.message || 'Search failed')

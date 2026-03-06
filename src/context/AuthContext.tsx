@@ -53,7 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       localStorage.setItem('dept_exec_token', result.token);
       localStorage.setItem('dept_exec_user', JSON.stringify(result.user));
-      
+
+      // Set cookies so Next.js middleware can read them for route protection
+      document.cookie = `dept_exec_token=${result.token}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `dept_exec_user=${encodeURIComponent(JSON.stringify(result.user))}; path=/; max-age=86400; SameSite=Lax`;
+
       setUser(result.user);
       setToken(result.token);
       

@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
   let user = null;
   if (userCookie) {
     try {
-      user = JSON.parse(userCookie);
+      user = JSON.parse(decodeURIComponent(userCookie));
     } catch {
       // Invalid user data
     }
