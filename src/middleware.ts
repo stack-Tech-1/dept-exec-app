@@ -2,13 +2,21 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Define protected routes
-const protectedRoutes = ['/dashboard', '/tasks', '/minutes', '/admin'];
+const protectedRoutes = [
+  '/dashboard',
+  '/tasks',
+  '/minutes',
+  '/admin',
+  '/goals',
+  '/meetings',
+  '/reports',
+  '/users',
+  '/profile',
+  '/notifications',
+];
 const adminRoutes = ['/admin'];
 
 export function middleware(request: NextRequest) {
-    console.log('🔄 Path:', request.nextUrl.pathname);
-  console.log('🔍 Has token param?', request.nextUrl.searchParams.has('token'));
-  console.log('🍪 Has auth cookie?', !!request.cookies.get('dept_exec_token'));
   const token = request.cookies.get('dept_exec_token')?.value;
   const userCookie = request.cookies.get('dept_exec_user')?.value;
   
