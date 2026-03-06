@@ -15,6 +15,7 @@ export interface DashboardStats {
 
 export interface Task {
   id: string;
+  _id?: string; // MongoDB native field — present when backend doesn't remap _id → id
   title: string;
   description: string;
   assignedTo: {

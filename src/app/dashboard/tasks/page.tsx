@@ -185,9 +185,11 @@ export default function TasksPage() {
     setPanelProgress(v)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
+      const taskId = selectedTask._id ?? selectedTask.id
+      if (!taskId) { console.error('Task ID is missing'); return }
       try {
-        await tasksService.updateProgress(selectedTask.id, v)
-        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, progress: v } : t))
+        await tasksService.updateProgress(taskId, v)
+        setTasks(prev => prev.map(t => (t._id ?? t.id) === taskId ? { ...t, progress: v } : t))
         setSelectedTask(prev => prev ? { ...prev, progress: v } : null)
       } catch (err) {
         console.error('Failed to update progress:', err)
@@ -197,8 +199,10 @@ export default function TasksPage() {
 
   const handleUploadAttachment = async (file: File) => {
     if (!selectedTask) return
+    const taskId = selectedTask._id ?? selectedTask.id
+    if (!taskId) { console.error('Task ID is missing'); return }
     try {
-      const result = await tasksService.uploadAttachment(selectedTask.id, file)
+      const result = await tasksService.uploadAttachment(taskId, file)
       const newAttachment = result?.attachment ?? { id: Date.now().toString(), filename: file.name, url: '', uploadedAt: new Date().toISOString() }
       setPanelAttachments(prev => [...prev, newAttachment])
     } catch (err) {
@@ -208,10 +212,12 @@ export default function TasksPage() {
 
   const handleSendComment = async () => {
     if (!selectedTask || !commentText.trim()) return
+    const taskId = selectedTask._id ?? selectedTask.id
+    if (!taskId) { console.error('Task ID is missing'); return }
     const text = commentText.trim()
     setCommentText('')
     try {
-      const result = await tasksService.addComment(selectedTask.id, text)
+      const result = await tasksService.addComment(taskId, text)
       const newComment = result?.comment ?? {
         id: Date.now().toString(),
         text,
@@ -226,9 +232,11 @@ export default function TasksPage() {
 
   const handleVerifyTask = async () => {
     if (!selectedTask) return
+    const taskId = selectedTask._id ?? selectedTask.id
+    if (!taskId) { console.error('Task ID is missing'); return }
     try {
-      await tasksService.verifyTask(selectedTask.id)
-      setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, status: 'VERIFIED' as const } : t))
+      await tasksService.verifyTask(taskId)
+      setTasks(prev => prev.map(t => (t._id ?? t.id) === taskId ? { ...t, status: 'VERIFIED' as const } : t))
       setSelectedTask(prev => prev ? { ...prev, status: 'VERIFIED' as const } : null)
       setVerifyConfirm(false)
     } catch (err) {
