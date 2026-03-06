@@ -28,7 +28,7 @@ export interface Task {
     email: string;
   };
   dueDate: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'VERIFIED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   completedAt?: string;
   statusHistory?: Array<{
@@ -37,6 +37,10 @@ export interface Task {
     changedAt: string;
   }>;
   progress?: number;
+  attachments?: Array<{ id: string; filename: string; url: string; uploadedAt: string }>;
+  comments?: Array<{ id: string; text: string; author: { id: string; name: string; position: string }; createdAt: string }>;
+  verifiedBy?: { id: string; name: string };
+  verifiedAt?: string;
 }
 
 export interface Meeting {

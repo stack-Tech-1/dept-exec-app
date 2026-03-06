@@ -39,6 +39,30 @@ class TasksService {
     return API.delete(`/tasks/${id}`);
   }
 
+  // Upload attachment to a task
+  async uploadAttachment(taskId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return API.post(`/tasks/${taskId}/attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  // Add comment to a task
+  async addComment(taskId: string, text: string): Promise<any> {
+    return API.post(`/tasks/${taskId}/comments`, { text });
+  }
+
+  // Update task progress (0–100)
+  async updateProgress(taskId: string, progress: number): Promise<any> {
+    return API.patch(`/tasks/${taskId}/progress`, { progress });
+  }
+
+  // Verify a completed task (admin only)
+  async verifyTask(taskId: string): Promise<any> {
+    return API.post(`/tasks/${taskId}/verify`);
+  }
+
   // Get tasks assigned to current user
   async getMyTasks(): Promise<Task[]> {
     const tasks = await this.getTasks();
