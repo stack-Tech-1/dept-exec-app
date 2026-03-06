@@ -36,6 +36,7 @@ const STATUS_CFG = {
   OVERDUE:     { label: 'Overdue',     dot: '#f59e0b', bar: '#f59e0b', pill: 'bg-amber-400/10 text-amber-400 border-amber-400/20' },
   PENDING:     { label: 'Pending',     dot: '#6b7280', bar: '#4b5563', pill: 'bg-white/[0.05] text-white/40 border-white/10' },
   VERIFIED:    { label: 'Verified',    dot: '#818cf8', bar: '#6366f1', pill: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20' },
+  verified:    { label: 'Verified',    dot: '#818cf8', bar: '#6366f1', pill: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20' },
 }
 const PRIORITY_CFG = {
   HIGH:   { Icon: Flame, pill: 'bg-rose-400/10 text-rose-400 border-rose-400/20' },
@@ -265,9 +266,9 @@ export default function TasksPage() {
     if (!taskId) { console.error('Task ID is missing'); return }
     try {
       await tasksService.verifyTask(taskId)
-      setTasks(prev => prev.map(t => (t._id ?? t.id) === taskId ? { ...t, status: 'VERIFIED' as const } : t))
-      setSelectedTask(prev => prev ? { ...prev, status: 'VERIFIED' as const } : null)
+      await fetchTasks()
       setVerifyConfirm(false)
+      closePanel()
     } catch (err) {
       console.error('Failed to verify task:', err)
     }
@@ -662,7 +663,7 @@ export default function TasksPage() {
                   </div>
 
                   {/* Verify Task (admin only, COMPLETED status) */}
-                  {isAdmin && selectedTask.status === 'COMPLETED' && (
+                  {isAdmin && (['COMPLETED', 'completed'] as string[]).includes(selectedTask.status as string) && (
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-3">
                         <ShieldCheck className="w-3.5 h-3.5 text-indigo-400/60" />
