@@ -15,6 +15,7 @@ const protectedRoutes = [
   '/notifications',
   '/members',
   '/announcements',
+  '/events',
 ];
 const adminRoutes = ['/admin'];
 
@@ -92,6 +93,7 @@ export const config = {
     '/notifications/:path*',
     '/members/:path*',
     '/announcements/:path*',
+    '/events/:path*',
     '/login',
     '/register',
   ],
