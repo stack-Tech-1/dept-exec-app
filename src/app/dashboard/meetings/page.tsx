@@ -255,7 +255,7 @@ export default function MeetingsPage() {
                           animate={{ x: ['-100%', '200%'] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3 }} />
                         <span className="relative z-10">Join Meeting</span>
                       </motion.button>
-                      <button onClick={() => window.location.href = `/dashboard/minutes/create?meeting=${meeting.id}`}
+                      <button onClick={() => window.location.href = '/dashboard/minutes'}
                         className="py-2.5 px-4 rounded-xl border border-white/[0.09] text-white/45 text-xs font-semibold
                           hover:text-white/70 hover:border-white/18 transition-colors">
                         Add Minutes
@@ -314,7 +314,7 @@ export default function MeetingsPage() {
                                 <CheckCircle className="w-3.5 h-3.5" />Recorded
                               </span>
                             ) : (
-                              <button onClick={() => window.location.href = `/dashboard/minutes/create?meeting=${m.id}`}
+                              <button onClick={() => window.location.href = '/dashboard/minutes'}
                                 className="text-xs text-[#0d7c3d] hover:text-emerald-400 font-semibold transition-colors">
                                 Add Minutes
                               </button>
