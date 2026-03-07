@@ -7,7 +7,7 @@ import {
   ClipboardList, Users, Zap, Plus, Copy, CheckCheck,
   ChevronDown, ChevronUp, X, AlertCircle, Download, Lock
 } from 'lucide-react'
-import { io } from 'socket.io-client'
+import { socket } from '@/lib/socket'
 import { authService } from '@/services/auth'
 import { attendanceService, type AttendanceSession } from '@/services/attendance'
 
@@ -361,26 +361,29 @@ export default function AttendancePage() {
 
   useEffect(() => { fetchSessions() }, [])
 
-  // Socket.io for live updates
+  // Socket.io for live updates — reuse singleton from src/lib/socket.ts
   useEffect(() => {
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace('/api', '')
-    const socket = io(baseUrl, { withCredentials: true, transports: ['websocket', 'polling'] })
-
-    socket.on('attendance-update', ({ sessionCode, attendee }: { sessionCode: string; attendee: any }) => {
+    const handleAttendanceUpdate = ({ sessionId, attendee }: { sessionId: string; attendee: any }) => {
       setSessions(prev => prev.map(s =>
-        s.sessionCode === sessionCode
-          ? { ...s, attendees: [{ ...attendee, _isNew: true }, ...s.attendees] }
+        s._id === sessionId
+          ? { ...s, attendees: [{ ...attendee }, ...(s.attendees ?? [])] }
           : s
       ))
-    })
+    }
 
-    socket.on('attendance-closed', ({ sessionCode }: { sessionCode: string }) => {
+    const handleAttendanceClosed = ({ sessionId }: { sessionId: string }) => {
       setSessions(prev => prev.map(s =>
-        s.sessionCode === sessionCode ? { ...s, status: 'CLOSED' } : s
+        s._id === sessionId ? { ...s, status: 'CLOSED' } : s
       ))
-    })
+    }
 
-    return () => { socket.disconnect() }
+    socket.on('attendance-update', handleAttendanceUpdate)
+    socket.on('attendance-closed', handleAttendanceClosed)
+
+    return () => {
+      socket.off('attendance-update', handleAttendanceUpdate)
+      socket.off('attendance-closed', handleAttendanceClosed)
+    }
   }, [])
 
   const fetchSessions = async () => {
