@@ -18,7 +18,7 @@ interface MarkResult {
   notFound?: boolean
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.ipeexecs.page/api'
+const API_BASE = 'https://api.ipeexecs.page/api'
 
 /* ─── Component ──────────────────────────────────── */
 export default function AttendPage({ params }: { params: { code: string } }) {
@@ -34,7 +34,7 @@ export default function AttendPage({ params }: { params: { code: string } }) {
   useEffect(() => {
     const verify = async () => {
       try {
-        const res = await fetch(`${API_BASE}/attendance/code/${code}`)
+        const res = await fetch(`https://api.ipeexecs.page/api/attendance/code/${code}`)
         if (res.status === 404) { setState('not_found'); return }
         if (!res.ok) { setState('error'); return }
         const data = await res.json()
@@ -58,10 +58,10 @@ export default function AttendPage({ params }: { params: { code: string } }) {
     if (!trimmed) { setInlineError('Please enter your matric number'); return }
     setSubmitting(true); setInlineError('')
     try {
-      const res = await fetch(`${API_BASE}/attendance/code/${code}/mark`, {
+      const res = await fetch(`https://api.ipeexecs.page/api/attendance/code/${code}/mark`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricNumber: trimmed }),
+        body: JSON.stringify({ matricNumber: trimmed.toUpperCase() }),
       })
       const data = await res.json()
 
