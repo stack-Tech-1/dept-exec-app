@@ -5,8 +5,9 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, HelpCircle, X, Home, CheckSquare, Target,
-  Calendar, FileText, BarChart3, Settings, ChevronRight, Cpu
+  Calendar, FileText, BarChart3, Settings, ChevronRight
 } from 'lucide-react'
+import Image from 'next/image'
 import { format } from 'date-fns'
 import { usePathname, useRouter } from 'next/navigation'
 import NotificationBell from '@/components/notifications/NotificationBell'
@@ -132,11 +133,10 @@ function DesktopHeader() {
           <motion.div
             whileHover={{ scale: 1.07, rotate: 10 }}
             transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-            className="shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-[#0a5a2d]
-              flex items-center justify-center border border-white/[0.1]"
+            className="shrink-0 w-8 h-8 rounded-xl overflow-hidden border border-white/[0.1]"
             style={{ boxShadow: '0 4px 14px rgba(13,124,61,0.45)' }}
           >
-            <Cpu className="w-4 h-4 text-white" />
+            <Image src="/icon.png" alt="IESA Logo" width={32} height={32} className="w-full h-full object-cover" />
           </motion.div>
 
           <div className="min-w-0">

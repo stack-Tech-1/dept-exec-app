@@ -10,10 +10,11 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, CheckSquare, Target, Calendar,
-  Users, Users2, FileText, Bell, Settings, X, Cpu, BarChart3,
+  Users, Users2, FileText, Bell, Settings, X, BarChart3,
   ChevronRight, Zap, HelpCircle, Megaphone, CalendarDays, ClipboardList, Vote, HeartHandshake,
   ClipboardCheck, CalendarRange
 } from 'lucide-react'
+import Image from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 /* ─── Types ──────────────────────────────────────── */
@@ -151,9 +152,8 @@ function MobileSidebar({
             {/* Header */}
             <div className="relative z-10 flex items-center justify-between px-5 pt-6 pb-5">
               <Link href="/dashboard" onClick={onClose} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-[#0a5a2d]
-                  flex items-center justify-center shadow-lg shadow-emerald-900/50">
-                  <Cpu className="w-5 h-5 text-white" />
+                <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-emerald-900/50">
+                  <Image src="/icon.png" alt="IESA Logo" width={36} height={36} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <p className="text-white font-bold text-sm tracking-tight leading-none" style={{ fontFamily: 'Syne, sans-serif' }}>
@@ -296,10 +296,9 @@ function DesktopSidebar({
         <motion.div
           whileHover={{ rotate: 180 }}
           transition={{ duration: 0.5, ease: 'easeInOut' }}
-          className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-[#0a5a2d]
-            flex items-center justify-center shadow-lg shadow-emerald-950/60 shrink-0"
+          className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-emerald-950/60 shrink-0"
         >
-          <Cpu className="w-5 h-5 text-white" />
+          <Image src="/icon.png" alt="IESA Logo" width={36} height={36} className="w-full h-full object-cover" />
         </motion.div>
         <div>
           <h1 className="text-white font-bold text-sm tracking-tight leading-none" style={{ fontFamily: 'Syne, sans-serif' }}>
@@ -474,7 +473,7 @@ export default function DashboardSidebar() {
               bg-[#0d7c3d] shadow-[0_4px_18px_rgba(13,124,61,0.5)]
               border border-emerald-400/20"
           >
-            <Cpu className="h-5 w-5 text-white" />
+            <Image src="/icon.png" alt="IESA Logo" width={20} height={20} className="w-5 h-5 object-cover" />
           </motion.button>
         )}
       </AnimatePresence>

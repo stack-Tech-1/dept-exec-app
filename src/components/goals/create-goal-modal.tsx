@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, Calendar, Target, Flag, Tag, Users, DollarSign,
@@ -103,11 +104,12 @@ export default function CreateGoalModal({ isOpen, onClose, onCreateGoal }: Creat
 
   const addTag = () => { if (tagInput.trim() && !tags.includes(tagInput.trim())) { setTags(p => [...p, tagInput.trim()]); setTagInput('') } }
 
-  return (
+  if (typeof window === 'undefined') return null
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
           style={{ background: 'rgba(3,10,5,0.84)', backdropFilter: 'blur(10px)' }}
           onClick={e => { if (e.target === e.currentTarget) onClose() }}>
 
@@ -402,6 +404,7 @@ export default function CreateGoalModal({ isOpen, onClose, onCreateGoal }: Creat
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

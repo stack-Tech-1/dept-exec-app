@@ -10,6 +10,7 @@ import GoalProgress from '@/components/dashboard/goal-progress'
 import QuickActions from '@/components/dashboard/quick-actions'
 import { authService } from '@/services/auth'
 import { Cpu } from 'lucide-react'
+import Image from 'next/image'
 
 /* ─── Time-based greeting ────────────────────────── */
 function getGreeting() {
@@ -139,8 +140,8 @@ export default function DashboardPage() {
                   <p className="text-white/30 text-[10px]">Academic session active</p>
                 </div>
                 <div className="relative">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-[#0a5a2d] flex items-center justify-center shadow-lg shadow-emerald-900/50">
-                    <Cpu className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-xl overflow-hidden shadow-lg shadow-emerald-900/50">
+                    <Image src="/icon.png" alt="IESA Logo" width={32} height={32} className="w-full h-full object-cover" />
                   </div>
                   <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#061510]" />
                 </div>
