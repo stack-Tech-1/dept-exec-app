@@ -182,7 +182,6 @@ function MobileSidebar({
             >
               <div className="relative">
                 <Avatar className="h-10 w-10 ring-2 ring-[#0d7c3d]/60">
-                  <AvatarImage src="/avatar.jpg" />
                   <AvatarFallback className="bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] text-white text-sm font-bold">
                     {initials}
                   </AvatarFallback>
@@ -315,7 +314,6 @@ function DesktopSidebar({
         <div className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/[0.06] px-3 py-3">
           <div className="relative">
             <Avatar className="h-9 w-9 ring-2 ring-[#0d7c3d]/50">
-              <AvatarImage src="/avatar.jpg" />
               <AvatarFallback className="bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] text-white text-xs font-bold">
                 {initials}
               </AvatarFallback>

@@ -7,9 +7,19 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'DeptExec System | Department Executive Portal',
-  description: 'Premium executive management system for university departments',
-}
+  title: 'IESA Exec Portal',
+  description: 'Industrial Engineering Students Association — University of Ibadan Executive Portal',
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+  },
+  openGraph: {
+    title: 'IESA Exec Portal',
+    description: 'IESA Executive Management Portal — University of Ibadan',
+    url: 'https://www.ipeexecs.page',
+    siteName: 'IESA Exec Portal',
+  }
+};
 
 export default function RootLayout({
   children,
