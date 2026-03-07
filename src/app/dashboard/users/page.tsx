@@ -93,6 +93,7 @@ export default function UsersPage() {
     try {
       setLoading(true); setError('')
       const response = await API.get('/users') as any
+      console.log('🔍 Users response:', response)
       const transformed = response.users?.map((u: any) => ({ ...u, id: u._id })) || []
       setUsers(transformed)
     } catch (err: any) {
