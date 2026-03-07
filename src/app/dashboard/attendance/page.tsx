@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import {
@@ -359,7 +360,6 @@ export default function AttendancePage() {
   const [modal, setModal] = useState(false)
 
   const isAdmin = authService.isAdmin()
-  console.log('modal state:', modal)
 
   useEffect(() => { fetchSessions() }, [])
 
@@ -437,9 +437,10 @@ export default function AttendancePage() {
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');`}</style>
 
-      <AnimatePresence>
-        {modal && <CreateSessionModal onClose={() => setModal(false)} onCreated={handleCreated} />}
-      </AnimatePresence>
+      {modal && typeof window !== 'undefined' && createPortal(
+        <CreateSessionModal onClose={() => setModal(false)} onCreated={handleCreated} />,
+        document.body
+      )}
 
       <div className="space-y-5 pb-24 lg:pb-8">
 
@@ -455,7 +456,7 @@ export default function AttendancePage() {
           </div>
           {isAdmin && (
             <motion.button whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setModal(true)}
+              onClick={e => { e.stopPropagation(); setModal(true) }}
               className="relative overflow-hidden inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl
                 bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white font-bold text-sm self-start sm:self-auto
                 shadow-[0_8px_24px_rgba(13,124,61,0.35)]">
