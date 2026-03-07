@@ -16,6 +16,7 @@ const protectedRoutes = [
   '/members',
   '/announcements',
   '/events',
+  '/elections',
 ];
 const adminRoutes = ['/admin'];
 
@@ -94,6 +95,7 @@ export const config = {
     '/members/:path*',
     '/announcements/:path*',
     '/events/:path*',
+    '/elections/:path*',
     '/dashboard/attendance/:path*',
     '/login',
     '/register',
