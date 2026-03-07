@@ -94,6 +94,7 @@ export const config = {
     '/members/:path*',
     '/announcements/:path*',
     '/events/:path*',
+    '/dashboard/attendance/:path*',
     '/login',
     '/register',
   ],

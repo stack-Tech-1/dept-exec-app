@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, CheckSquare, Target, Calendar,
   Users, Users2, FileText, Bell, Settings, X, Cpu, BarChart3,
-  ChevronRight, Zap, HelpCircle, Megaphone, CalendarDays
+  ChevronRight, Zap, HelpCircle, Megaphone, CalendarDays, ClipboardList
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
@@ -430,7 +430,8 @@ export default function DashboardSidebar() {
     { name: 'Minutes',   href: '/dashboard/minutes',    icon: FileText },
     { name: 'Reports',   href: '/dashboard/reports',    icon: BarChart3 },
     { name: 'Announcements', href: '/dashboard/announcements', icon: Megaphone },
-    { name: 'Events',        href: '/dashboard/events',        icon: CalendarDays },
+    { name: 'Events',      href: '/dashboard/events',      icon: CalendarDays },
+    { name: 'Attendance',  href: '/dashboard/attendance',  icon: ClipboardList },
     ...(isAdmin
       ? [
           { name: 'Users',   href: '/dashboard/users',   icon: Users  },
