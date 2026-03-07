@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import DashboardSidebar from '@/components/layout/dashboard-sidebar'
 import DashboardHeader from '@/components/layout/dashboard-header'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import FloatingAssistant from '@/components/assistant/FloatingAssistant'
 
 /* ─── Animated SVG mesh background ──────────────── */
 function MeshBackground() {
@@ -124,6 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </motion.main>
 
           {/* Bottom fade for mobile command pill clearance */}
+          <FloatingAssistant />
           <div className="h-4 lg:hidden" />
         </div>
       </div>

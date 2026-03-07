@@ -12,7 +12,7 @@ import {
   LayoutDashboard, CheckSquare, Target, Calendar,
   Users, Users2, FileText, Bell, Settings, X, BarChart3,
   ChevronRight, Zap, HelpCircle, Megaphone, CalendarDays, ClipboardList, Vote, HeartHandshake,
-  ClipboardCheck, CalendarRange
+  ClipboardCheck, CalendarRange, Sparkles
 } from 'lucide-react'
 import Image from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -421,6 +421,7 @@ export default function DashboardSidebar() {
   const isAdmin = authUser?.role === ROLES.ADMIN
 
   const navigation: NavItem[] = [
+    { name: 'AI Assistant', href: '/dashboard/assistant', icon: Sparkles },
     { name: 'Dashboard', href: '/dashboard',            icon: LayoutDashboard },
     { name: 'Tasks',     href: '/dashboard/tasks',      icon: CheckSquare },
     { name: 'Goals',     href: '/dashboard/goals',      icon: Target },

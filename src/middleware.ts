@@ -100,6 +100,7 @@ export const config = {
     '/dashboard/handover/:path*',
     '/dashboard/calendar/:path*',
     '/dashboard/attendance/:path*',
+    '/dashboard/assistant/:path*',
     '/login',
     '/register',
   ],
