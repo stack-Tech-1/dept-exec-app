@@ -81,6 +81,7 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
       <motion.div
         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
         className="absolute right-0 top-0 bottom-0 w-full max-w-md flex flex-col overflow-hidden"
         style={{
           background: 'linear-gradient(160deg, #0a1c11 0%, #06100a 100%)',
@@ -119,7 +120,7 @@ function CreateSessionModal({ onClose, onCreated }: { onClose: () => void; onCre
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-white/45 text-sm font-semibold hover:text-white/70 transition-colors">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={saving}
+          <button type="button" onClick={handleSubmit} disabled={saving}
             className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white text-sm font-bold disabled:opacity-50 hover:shadow-[0_4px_16px_rgba(13,124,61,0.35)] transition-all">
             {saving ? 'Creating…' : 'Create Session'}
           </button>
@@ -358,6 +359,7 @@ export default function AttendancePage() {
   const [modal, setModal] = useState(false)
 
   const isAdmin = authService.isAdmin()
+  console.log('modal state:', modal)
 
   useEffect(() => { fetchSessions() }, [])
 
