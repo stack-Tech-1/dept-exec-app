@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ClipboardList, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 
@@ -21,8 +21,8 @@ interface MarkResult {
 const API_BASE = 'https://api.ipeexecs.page/api'
 
 /* ─── Component ──────────────────────────────────── */
-export default function AttendPage({ params }: { params: { code: string } }) {
-  const { code } = params
+export default function AttendPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = use(params)
 
   const [state, setState] = useState<PageState>('loading')
   const [session, setSession] = useState<SessionInfo | null>(null)
