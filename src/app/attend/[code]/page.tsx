@@ -18,7 +18,7 @@ interface MarkResult {
   notFound?: boolean
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.ipeexecs.page/api'
 
 /* ─── Component ──────────────────────────────────── */
 export default function AttendPage({ params }: { params: { code: string } }) {

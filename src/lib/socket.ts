@@ -1,61 +1,32 @@
-// C:\Users\SMC\Documents\GitHub\dept-exec-app\src\lib\socket.ts
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { authService } from '@/services/auth';
 
-class SocketService {
-  private socket: Socket | null = null;
-  private static instance: SocketService;
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://api.ipeexecs.page';
 
-  static getInstance(): SocketService {
-    if (!SocketService.instance) {
-      SocketService.instance = new SocketService();
-    }
-    return SocketService.instance;
-  }
+export const socket = io(SOCKET_URL, {
+  autoConnect: false,
+  transports: ['websocket', 'polling'],
+  withCredentials: true,
+});
 
-  connect() {
-    if (this.socket?.connected) return;
-    
-    const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL ||
-      (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace('/api', '');
-    this.socket = io(baseUrl, {
-      withCredentials: true,
-      transports: ['websocket', 'polling']
-    });
+socket.on('connect', () => {
+  console.log('✅ Socket connected');
+  const user = authService.getCurrentUser();
+  if (user?.id) socket.emit('join-user', { userId: user.id });
+});
 
-    this.socket.on('connect', () => {
-      console.log('✅ Socket connected');
-      
-      // Join user-specific room
-      const user = authService.getCurrentUser();
-      if (user?.id) {
-        this.socket?.emit('join-user', { userId: user.id });
-      }
-    });
+socket.on('notification', (notification) => {
+  console.log('📢 New notification:', notification);
+  window.dispatchEvent(new CustomEvent('new-notification', { detail: notification }));
+});
 
-    this.socket.on('notification', (notification) => {
-      console.log('📢 New notification:', notification);
-      // Dispatch custom event for components to listen to
-      window.dispatchEvent(new CustomEvent('new-notification', {
-        detail: notification
-      }));
-    });
+socket.on('disconnect', () => {
+  console.log('❌ Socket disconnected');
+});
 
-    this.socket.on('disconnect', () => {
-      console.log('❌ Socket disconnected');
-    });
-  }
-
-  disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-  }
-
-  isConnected(): boolean {
-    return this.socket?.connected || false;
-  }
-}
-
-export const socketService = SocketService.getInstance();
+// Backward-compatibility shim — existing code calls socketService.connect() / disconnect()
+export const socketService = {
+  connect:     () => { if (!socket.connected) socket.connect(); },
+  disconnect:  () => socket.disconnect(),
+  isConnected: () => socket.connected,
+};
