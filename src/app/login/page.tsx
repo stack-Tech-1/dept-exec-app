@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, LogIn, Settings, BarChart2, Cpu, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { authService } from '@/services/auth'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -247,13 +248,10 @@ function LoginFormInner() {
           >
             Password
           </Label>
-          <button 
-            type="button"
-            onClick={() => alert('Please contact department admin for password reset')}
-            className="text-xs text-[#0d7c3d] hover:text-[#0a5a2d] font-semibold transition-colors"
-          >
+          <Link href="/forgot-password"
+            className="text-xs text-emerald-500 hover:text-emerald-400 font-semibold transition-colors">
             Forgot password?
-          </button>
+          </Link>
         </div>
         <div className={inputWrapperClass('password')}>
           <Lock 

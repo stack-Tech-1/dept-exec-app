@@ -129,6 +129,18 @@ class AuthService {
       token: this.getToken(),
     };
   }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return API.post('/auth/forgot-password', { email }) as any;
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    return API.post('/auth/reset-password', { token, password }) as any;
+  }
+
+  async verifyResetToken(token: string): Promise<{ valid: boolean; name?: string }> {
+    return API.get(`/auth/verify-reset-token/${token}`) as any;
+  }
 }
 
 export const authService = new AuthService();
