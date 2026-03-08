@@ -3,9 +3,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion'
-import { Mail, Lock, Eye, EyeOff, LogIn, Settings, BarChart2, Cpu, Zap } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, LogIn, Zap, Users, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { authService } from '@/services/auth'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -130,9 +131,9 @@ function RotatingGear({ size = 120, speed = 20, reverse = false, style = {} }: {
    FLOATING STAT CARD
 ═══════════════════════════════════════════════════ */
 const stats = [
-  { icon: BarChart2, label: 'Reports Active', value: '24',  color: 'from-emerald-500/20 to-emerald-800/5' },
-  { icon: Cpu,       label: 'Processes',       value: '142', color: 'from-green-400/20 to-green-800/5' },
-  { icon: Zap,       label: 'System Load',     value: '87%', color: 'from-lime-400/20 to-lime-800/5' },
+  { icon: Users,    label: 'Active Members',  value: '300+',    color: 'from-emerald-500/20 to-emerald-800/5' },
+  { icon: Calendar, label: 'Events This Year', value: '12+',    color: 'from-green-400/20 to-green-800/5' },
+  { icon: Zap,      label: 'Session',          value: '2024/25', color: 'from-lime-400/20 to-lime-800/5' },
 ]
 
 function StatCard({ icon: Icon, label, value, color, delay }: any) {
@@ -408,11 +409,8 @@ export default function LoginPage() {
               transition={{ duration: 0.7 }}
               className="flex items-center gap-3"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-[#0d7c3d]
-                flex items-center justify-center shadow-lg shadow-emerald-950/60">
-                <Settings className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-display text-white font-bold text-lg tracking-tight">DeptExec</span>
+              <Image src="/icon.png" alt="IESA Logo" width={40} height={40} className="rounded-xl" />
+              <span className="font-display text-white font-bold text-lg tracking-tight">IESA Portal</span>
             </motion.div>
           </div>
 
@@ -431,7 +429,7 @@ export default function LoginPage() {
                 Portal
               </h1>
               <p className="text-white/35 text-sm leading-relaxed max-w-[17rem] font-light">
-                Centralised oversight, real-time analytics, and department intelligence — unified.
+                Centralised management for the Industrial Engineering Students' Association — University of Ibadan.
               </p>
             </motion.div>
 
@@ -527,13 +525,13 @@ export default function LoginPage() {
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 180, damping: 16, delay: 0.15 }}
           >
-            <div className="w-[72px] h-[72px] mx-auto mb-5 rounded-[22px]
-              bg-gradient-to-br from-emerald-400 to-[#0a5a2d]
-              flex items-center justify-center
-              shadow-[0_16px_48px_rgba(13,124,61,0.55)]
-              border border-white/10">
-              <Settings className="w-8 h-8 text-white" />
-            </div>
+            <Image
+              src="/icon.png"
+              alt="IESA Logo"
+              width={72}
+              height={72}
+              className="mx-auto mb-5 rounded-[22px] shadow-[0_16px_48px_rgba(13,124,61,0.55)]"
+            />
           </motion.div>
 
           <motion.div
@@ -545,10 +543,10 @@ export default function LoginPage() {
               IPE · Executive Portal
             </p>
             <h1 className="font-display text-white text-[2.6rem] font-black leading-tight">
-              Dept<span className="text-emerald-400">Exec</span>
+              IESA<span className="text-emerald-400"> Portal</span>
             </h1>
             <p className="text-white/30 text-sm mt-1.5 font-light">
-              Department management at your fingertips
+              Industrial Engineering Students' Association
             </p>
           </motion.div>
 
@@ -560,9 +558,9 @@ export default function LoginPage() {
             className="flex gap-3.5 mt-8"
           >
             {[
-              { label: 'Reports', val: '24' },
-              { label: 'Processes', val: '142' },
-              { label: 'Uptime', val: '99%' },
+              { label: 'Members', val: '300+' },
+              { label: 'Events',  val: '12+'  },
+              { label: 'Session', val: '24/25' },
             ].map(s => (
               <div key={s.label}
                 className="flex flex-col items-center px-4 py-2.5 rounded-2xl
