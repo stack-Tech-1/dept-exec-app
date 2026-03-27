@@ -30,6 +30,16 @@ export interface MemberStats {
   dues: { paid: number; unpaid: number };
 }
 
+export interface RegistrationLink {
+  _id: string;
+  label: string;
+  token: string;
+  expiresAt?: string;
+  status: 'ACTIVE' | 'EXPIRED';
+  createdAt: string;
+  createdBy?: { name: string };
+}
+
 class MembersService {
   async getMembers(params?: { level?: string; gender?: string; search?: string; duesPaid?: boolean; session?: string; page?: number }): Promise<{ members: Member[]; total: number; pages: number }> {
     return API.get('/members', { params }) as any;
@@ -61,6 +71,18 @@ class MembersService {
 
   async getStats(session?: string): Promise<MemberStats> {
     return API.get('/members/stats', { params: session ? { session } : {} }) as any;
+  }
+
+  async createRegistrationLink(data: { label: string; expiresAt?: string }): Promise<RegistrationLink> {
+    return API.post('/members/links', data) as any;
+  }
+
+  async getRegistrationLinks(): Promise<RegistrationLink[]> {
+    return API.get('/members/links') as any;
+  }
+
+  async deleteRegistrationLink(id: string): Promise<void> {
+    return API.delete(`/members/links/${id}`) as any;
   }
 }
 

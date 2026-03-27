@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Public routes are any paths NOT listed here and NOT in the matcher config.
+// /join/:path* (member self-registration) and /vote/:path* are intentionally public.
+
 // Define protected routes
 const protectedRoutes = [
   '/dashboard',

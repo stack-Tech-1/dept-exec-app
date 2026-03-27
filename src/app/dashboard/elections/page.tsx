@@ -5,11 +5,13 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Vote, Plus, X, Share2, Trash2, ChevronDown,
-  Users, Trophy, BarChart2, Check, AlertTriangle, Loader2
+  Users, Trophy, BarChart2, Check, AlertTriangle, Loader2,
+  Link2, CheckCircle
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 import { electionsService, type Election, type Candidate } from '@/services/elections'
+import { votingSessionService, type VotingSession } from '@/services/votingSession'
 import { socket } from '@/lib/socket'
 
 /* ─── CountUp ────────────────────────────────────── */
@@ -319,6 +321,214 @@ function AddCandidateModal({
   )
 }
 
+/* ─── Create Voting Session Modal ───────────────── */
+function CreateVotingSessionModal({
+  openElections, onClose, onCreated
+}: {
+  openElections: Election[]
+  onClose: () => void
+  onCreated: (s: VotingSession) => void
+}) {
+  const [label, setLabel] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [expiresAt, setExpiresAt] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [generated, setGenerated] = useState<VotingSession | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const toggle = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
+  const handleSubmit = async () => {
+    if (!label.trim()) { setError('Session label is required.'); return }
+    if (selectedIds.size === 0) { setError('Select at least one election.'); return }
+    setSubmitting(true); setError('')
+    try {
+      const session = await votingSessionService.createSession({
+        label: label.trim(),
+        elections: [...selectedIds],
+        expiresAt: expiresAt || undefined,
+      })
+      setGenerated(session)
+      onCreated(session)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create voting session.')
+    } finally { setSubmitting(false) }
+  }
+
+  const link = generated ? `${window.location.origin}/vote/session/${generated.token}` : ''
+  const handleCopy = () => {
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <motion.div
+        initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        className="relative z-10 w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#071a0f]"
+        style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.7)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+
+        {generated ? (
+          /* ── Success state ── */
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <h2 className="text-lg font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+                  Voting Link Generated!
+                </h2>
+              </div>
+              <button type="button" onClick={onClose}
+                className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                Your Voting Link
+              </label>
+              <div className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-emerald-500/20
+                text-emerald-300 text-sm font-mono break-all select-all">
+                {link}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button type="button" onClick={handleCopy}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all
+                  ${copied
+                    ? 'bg-emerald-500/30 border border-emerald-500/40 text-emerald-300'
+                    : 'bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white shadow-[0_4px_16px_rgba(13,124,61,0.4)]'
+                  }`}>
+                {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+              <button type="button" onClick={onClose}
+                className="flex-1 py-3 rounded-xl border border-white/[0.08] text-white/50 text-sm font-medium hover:bg-white/[0.04] transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── Form state ── */
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+                Create Voting Session
+              </h2>
+              <button type="button" onClick={onClose}
+                className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Session Label */}
+              <div>
+                <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                  Session Label<span className="text-emerald-400 ml-0.5">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={label}
+                  onChange={e => setLabel(e.target.value)}
+                  placeholder="e.g. 2025/2026 General Elections"
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08]
+                    text-white text-sm placeholder:text-white/20 outline-none
+                    focus:border-emerald-500/40 focus:bg-white/[0.08] transition-all"
+                />
+              </div>
+
+              {/* Elections checkboxes */}
+              <div>
+                <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-2">
+                  Include Elections<span className="text-emerald-400 ml-0.5">*</span>
+                </label>
+                {openElections.length === 0 ? (
+                  <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <p className="text-white/30 text-sm">No open elections available</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {openElections.map(e => (
+                      <label key={e._id}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer
+                          bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06] transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(e._id)}
+                          onChange={() => toggle(e._id)}
+                          className="w-4 h-4 rounded accent-emerald-500 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-white/80 font-medium truncate">{e.title}</p>
+                          <p className="text-[11px] text-white/35 truncate">{e.position} · {e.session}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Expiry */}
+              <div>
+                <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                  Expires At <span className="text-white/25 normal-case font-normal">(optional)</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={expiresAt}
+                  onChange={e => setExpiresAt(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.08]
+                    text-white text-sm outline-none focus:border-emerald-500/40 focus:bg-white/[0.08]
+                    transition-all [color-scheme:dark]"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <p className="text-rose-300 text-sm">{error}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose}
+                className="flex-1 py-3 rounded-xl border border-white/[0.08] text-white/50 text-sm font-medium hover:bg-white/[0.04] transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={handleSubmit} disabled={submitting || openElections.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
+                  bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white text-sm font-bold
+                  disabled:opacity-40 transition-all shadow-[0_4px_16px_rgba(13,124,61,0.4)]">
+                {submitting
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                  : <><Link2 className="w-4 h-4" /> Generate Link</>
+                }
+              </button>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </div>,
+    document.body
+  )
+}
+
 /* ─── Election Card ──────────────────────────────── */
 function ElectionCard({
   election, isAdmin, onUpdate
@@ -331,13 +541,20 @@ function ElectionCard({
   const [statusLoading, setStatusLoading] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [cardError, setCardError] = useState('')
+
+  useEffect(() => {
+    if (!cardError) return
+    const t = setTimeout(() => setCardError(''), 5000)
+    return () => clearTimeout(t)
+  }, [cardError])
 
   const handleStatusChange = async (newStatus: string) => {
     setStatusLoading(true)
     try {
       const updated = await electionsService.updateStatus(election._id, newStatus)
       onUpdate(updated)
-    } catch { /* ignore */ }
+    } catch (err: any) { setCardError(err?.message || 'Failed to update election status') }
     finally { setStatusLoading(false) }
   }
 
@@ -346,7 +563,7 @@ function ElectionCard({
     try {
       const updated = await electionsService.removeCandidate(election._id, candidateId)
       onUpdate(updated)
-    } catch { /* ignore */ }
+    } catch (err: any) { setCardError(err?.message || 'Failed to remove candidate') }
     finally { setRemovingId(null) }
   }
 
@@ -363,6 +580,15 @@ function ElectionCard({
         <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
 
         <div className="p-5 space-y-4">
+          {cardError && (
+            <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <p className="text-rose-400 text-xs flex-1">{cardError}</p>
+              <button onClick={() => setCardError('')} className="text-rose-400/50 hover:text-rose-400 transition-colors shrink-0">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -487,6 +713,12 @@ export default function ElectionsPage() {
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'OPEN' | 'CLOSED'>('ALL')
   const [showCreate, setShowCreate] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [fetchError, setFetchError] = useState('')
+  const [showCreateSession, setShowCreateSession] = useState(false)
+  const [votingSessions, setVotingSessions] = useState<VotingSession[]>([])
+  const [sessionsLoading, setSessionsLoading] = useState(true)
+  const [deactivatingToken, setDeactivatingToken] = useState<string | null>(null)
+  const [sessionCopied, setSessionCopied] = useState<string | null>(null)
 
   const totalElections = elections.length
   const openElections = elections.filter(e => e.status === 'OPEN').length
@@ -506,9 +738,37 @@ export default function ElectionsPage() {
   useEffect(() => {
     electionsService.getElections()
       .then(data => setElections(Array.isArray(data) ? data : []))
-      .catch(() => setElections([]))
+      .catch((err: any) => { setElections([]); setFetchError(err?.message || 'Failed to load elections') })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!fetchError) return
+    const t = setTimeout(() => setFetchError(''), 5000)
+    return () => clearTimeout(t)
+  }, [fetchError])
+
+  useEffect(() => {
+    votingSessionService.getSessions()
+      .then(data => setVotingSessions(Array.isArray(data) ? data : []))
+      .catch(() => setVotingSessions([]))
+      .finally(() => setSessionsLoading(false))
+  }, [])
+
+  const handleDeactivateSession = async (token: string) => {
+    setDeactivatingToken(token)
+    try {
+      const updated = await votingSessionService.deactivateSession(token)
+      setVotingSessions(prev => prev.map(s => s.token === token ? updated : s))
+    } catch { /* silent */ }
+    finally { setDeactivatingToken(null) }
+  }
+
+  const handleCopySessionLink = (token: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/vote/session/${token}`)
+    setSessionCopied(token)
+    setTimeout(() => setSessionCopied(null), 2000)
+  }
 
   useEffect(() => {
     socket.connect()
@@ -563,15 +823,25 @@ export default function ElectionsPage() {
             </h1>
           </div>
           {isAdmin && (
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={e => { e.stopPropagation(); setShowCreate(true) }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d]
-                text-white text-sm font-bold shadow-[0_4px_16px_rgba(13,124,61,0.4)]">
-              <Plus className="w-4 h-4" />
-              New Election
-            </motion.button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setShowCreateSession(true) }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-500/30
+                  bg-emerald-500/10 text-emerald-400 text-sm font-bold hover:bg-emerald-500/20 transition-colors">
+                <Link2 className="w-4 h-4" />
+                Create Voting Session
+              </button>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={e => { e.stopPropagation(); setShowCreate(true) }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d]
+                  text-white text-sm font-bold shadow-[0_4px_16px_rgba(13,124,61,0.4)]">
+                <Plus className="w-4 h-4" />
+                New Election
+              </motion.button>
+            </div>
           )}
         </div>
 
@@ -589,6 +859,17 @@ export default function ElectionsPage() {
             </div>
           ))}
         </div>
+
+        {/* Fetch error */}
+        {fetchError && (
+          <div className="flex items-start gap-2.5 px-4 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <p className="text-rose-400 text-sm flex-1">{fetchError}</p>
+            <button onClick={() => setFetchError('')} className="text-rose-400/50 hover:text-rose-400 transition-colors shrink-0">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Filter tabs */}
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -630,6 +911,74 @@ export default function ElectionsPage() {
             ))}
           </div>
         )}
+
+        {/* Voting Sessions */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-black text-white/50 tracking-[0.15em] uppercase"
+            style={{ fontFamily: 'Syne, sans-serif' }}>Voting Sessions</h2>
+
+          {sessionsLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 rounded-full border-2 border-[#0d7c3d]/20 border-t-[#0d7c3d] animate-spin" />
+            </div>
+          ) : votingSessions.length === 0 ? (
+            <div className="py-6 text-center rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+              <p className="text-white/25 text-sm">No voting sessions yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {votingSessions.map(s => (
+                <div key={s.token}
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white truncate">{s.label}</p>
+                    <p className="text-[11px] text-white/35 mt-0.5">
+                      {s.elections.length} election{s.elections.length !== 1 ? 's' : ''}
+                      {s.expiresAt && ` · expires ${new Date(s.expiresAt).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                    s.status === 'ACTIVE'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : s.status === 'DEACTIVATED'
+                      ? 'bg-rose-500/15 text-rose-400'
+                      : 'bg-white/[0.07] text-white/40'
+                  }`}>
+                    {s.status === 'ACTIVE' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    )}
+                    {s.status}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopySessionLink(s.token)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors
+                        bg-white/[0.05] border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white">
+                      {sessionCopied === s.token
+                        ? <Check className="w-3.5 h-3.5" />
+                        : <Share2 className="w-3.5 h-3.5" />}
+                      {sessionCopied === s.token ? 'Copied!' : 'Copy Link'}
+                    </button>
+                    {s.status === 'ACTIVE' && isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeactivateSession(s.token)}
+                        disabled={deactivatingToken === s.token}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors
+                          bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 disabled:opacity-40">
+                        {deactivatingToken === s.token
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <X className="w-3.5 h-3.5" />}
+                        Deactivate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <AnimatePresence>
@@ -637,6 +986,19 @@ export default function ElectionsPage() {
           <CreateElectionModal
             onClose={() => setShowCreate(false)}
             onCreate={created => setElections(prev => [created, ...prev])}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCreateSession && (
+          <CreateVotingSessionModal
+            openElections={elections.filter(e => e.status === 'OPEN')}
+            onClose={() => setShowCreateSession(false)}
+            onCreated={session => {
+              setVotingSessions(prev => [session, ...prev])
+              setShowCreateSession(false)
+            }}
           />
         )}
       </AnimatePresence>

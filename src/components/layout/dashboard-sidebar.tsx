@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, CheckSquare, Target, Calendar,
-  Users, Users2, FileText, Bell, Settings, X, BarChart3,
+  Users, UsersRound, FileText, Bell, Settings, X, BarChart3,
   ChevronRight, Zap, HelpCircle, Megaphone, CalendarDays, ClipboardList, Vote, HeartHandshake,
   ClipboardCheck, CalendarRange, Sparkles
 } from 'lucide-react'
@@ -438,7 +438,7 @@ export default function DashboardSidebar() {
     ...(isAdmin
       ? [
           { name: 'Users',   href: '/dashboard/users',   icon: Users  },
-          { name: 'Members', href: '/dashboard/members', icon: Users2 },
+          { name: 'Members', href: '/dashboard/members', icon: UsersRound },
         ]
       : []),
   ]
