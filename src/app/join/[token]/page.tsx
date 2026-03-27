@@ -145,7 +145,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
   const [invalidMsg, setInvalidMsg] = useState('')
 
   // Form fields
-  const [name, setName] = useState('')
+  const [fullName, setName] = useState('')
   const [email, setEmail] = useState('')
   const [matricNumber, setMatricNumber] = useState('')
   const [phone, setPhone] = useState('')
@@ -187,7 +187,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
       const res = await fetch(`${API_BASE}/members/register/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, matricNumber, phone, level, gender }),
+        body: JSON.stringify({ fullName, email, matricNumber, phone, level, gender }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Registration failed. Please try again.')
@@ -325,7 +325,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                       <Field label="Full Name" required icon={User}>
                         <input
                           type="text"
-                          value={name}
+                          value={fullName}
                           onChange={e => setName(e.target.value)}
                           placeholder="e.g. Adewale Okafor"
                           className={inputCls}
