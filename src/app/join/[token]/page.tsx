@@ -14,7 +14,7 @@ type PageState = 'loading' | 'invalid' | 'form' | 'success'
 
 interface LinkInfo {
   label: string
-  status: 'ACTIVE' | 'EXPIRED'
+  status: 'active' | 'expired'
   expiresAt?: string
 }
 
@@ -163,12 +163,14 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
         return data
       })
       .then((data: LinkInfo) => {
-        if (data.status === 'ACTIVE') {
-          setLinkInfo(data)
-          setPageState('form')
-        } else {
+        // API may not return a status field — infer from expiresAt
+        const expired = data.expiresAt ? new Date(data.expiresAt) < new Date() : false
+        if (data.status === 'expired' || expired) {
           setInvalidMsg('This registration link has expired.')
           setPageState('invalid')
+        } else {
+          setLinkInfo(data)
+          setPageState('form')
         }
       })
       .catch((err: Error) => {
