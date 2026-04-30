@@ -26,7 +26,7 @@ interface SessionElection {
 interface VotingSessionData {
   token: string
   label: string
-  status: 'ACTIVE' | 'EXPIRED' | 'DEACTIVATED'
+  isActive: boolean
   elections: SessionElection[]
   expiresAt?: string
 }
@@ -163,7 +163,7 @@ export default function VotingSessionPage({
         const res = await fetch(`${API}/voting-sessions/${token}`)
         if (!res.ok) { setPageState(res.status === 404 ? 'invalid' : 'error'); return }
         const data: VotingSessionData = await res.json()
-        if (data.status !== 'ACTIVE') { setPageState('invalid'); return }
+        if (!data.isActive) { setPageState('invalid'); return }
         if (data.expiresAt && new Date(data.expiresAt) < new Date()) { setPageState('invalid'); return }
         setSessionData(data)
         setPageState('voting')
