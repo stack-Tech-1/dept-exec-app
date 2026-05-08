@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays, Clock, CheckCircle, XCircle, MapPin,
-  Edit, ChevronDown, X, AlertCircle, Plus, Users
+  Edit, ChevronDown, X, AlertCircle, Plus, Users, Ticket
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { eventsService, type Event, type EventStats } from '@/services/events'
@@ -106,7 +106,10 @@ function EventModal({
     venue: event?.venue ?? '',
     expectedAttendance: event?.expectedAttendance?.toString() ?? '',
     tags: event?.tags?.join(', ') ?? '',
+    ticketPrice: event?.ticketPrice?.toString() ?? '',
+    ticketItems: event?.ticketItems?.join(', ') ?? '',
   })
+  const [isPaidEvent, setIsPaidEvent] = useState(event?.isPaidEvent ?? false)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
@@ -123,6 +126,9 @@ function EventModal({
       expectedAttendance: form.expectedAttendance ? Number(form.expectedAttendance) : undefined,
       tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       endDate: form.endDate || undefined,
+      isPaidEvent,
+      ticketPrice: isPaidEvent && form.ticketPrice ? Number(form.ticketPrice) : undefined,
+      ticketItems: isPaidEvent ? form.ticketItems.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
     }
     try {
       if (isEdit && event) {
@@ -228,6 +234,37 @@ function EventModal({
           <div>
             <label className={labelCls}>Tags (comma-separated)</label>
             <input className={inputCls} value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="e.g. cultural, annual, music" />
+          </div>
+
+          <div className="pt-1 border-t border-white/[0.06]">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                onClick={() => setIsPaidEvent(v => !v)}
+                className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${isPaidEvent ? 'bg-emerald-600' : 'bg-white/10'}`}
+              >
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${isPaidEvent ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white/70">Paid Event</p>
+                <p className="text-[11px] text-white/30">Members need a ticket to attend</p>
+              </div>
+            </label>
+
+            {isPaidEvent && (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <label className={labelCls}>Ticket Price (₦) — display only</label>
+                  <input type="number" min="0" className={inputCls} value={form.ticketPrice}
+                    onChange={e => set('ticketPrice', e.target.value)} placeholder="e.g. 2000" />
+                </div>
+                <div>
+                  <label className={labelCls}>Items Included (comma-separated)</label>
+                  <input className={inputCls} value={form.ticketItems}
+                    onChange={e => set('ticketItems', e.target.value)}
+                    placeholder="e.g. Food, Drinks, Snacks, Souvenir" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -375,6 +412,13 @@ function EventCard({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white/35 text-xs font-semibold hover:text-white/60 hover:bg-white/[0.07] transition-all">
               <Edit className="w-3 h-3" />Edit
             </button>
+
+            {event.isPaidEvent && (
+              <a href={`/dashboard/events/${event._id}/tickets`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-all">
+                <Ticket className="w-3 h-3" />Tickets
+              </a>
+            )}
 
             {transitions.length > 0 && (
               <div className="relative">

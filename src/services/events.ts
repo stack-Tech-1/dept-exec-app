@@ -18,6 +18,9 @@ export interface Event {
   }>;
   createdBy: { name: string; position: string };
   tags?: string[];
+  isPaidEvent?: boolean;
+  ticketPrice?: number;
+  ticketItems?: string[];
   createdAt: string;
 }
 
