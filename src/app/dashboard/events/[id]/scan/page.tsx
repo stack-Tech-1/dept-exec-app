@@ -38,52 +38,58 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
   const [scannerError, setScannerError] = useState('')
   const scannerRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const scannedRef = useRef(false)
 
   /* ── Init scanner ────────────────────────────── */
   useEffect(() => {
+    if (scanState !== 'scanning') return
+
     let html5QrCode: any = null
+    let stopped = false
+
+    const safeStop = async () => {
+      if (!html5QrCode || stopped) return
+      stopped = true
+      try { await html5QrCode.stop() } catch { /* ignore */ }
+    }
 
     const init = async () => {
       try {
         const { Html5Qrcode } = await import('html5-qrcode')
+        if (stopped) return
         html5QrCode = new Html5Qrcode('qr-reader')
         scannerRef.current = html5QrCode
-
         await html5QrCode.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 240, height: 240 } },
           onScanSuccess,
-          () => { /* ignore non-QR frames */ }
+          () => {}
         )
-        setScannerReady(true)
+        if (!stopped) setScannerReady(true)
       } catch (err: any) {
-        setScannerError(err?.message || 'Camera permission denied. Please allow camera access and reload.')
+        if (!stopped) setScannerError(err?.message || 'Camera permission denied. Please allow camera access and reload.')
       }
     }
 
-    if (scanState === 'scanning') init()
-
-    return () => {
-      html5QrCode?.stop().catch(() => {})
-    }
+    init()
+    return () => { safeStop() }
   }, [scanState])
 
   /* ── Handle scan result ──────────────────────── */
   const onScanSuccess = async (decodedText: string) => {
-    // Extract token from URL like /picnic/ticket/{token}
+    if (scannedRef.current) return
     const match = decodedText.match(/\/picnic\/ticket\/([a-f0-9]{64})/)
-    if (!match) return // not our QR code — keep scanning
+    if (!match) return
+    scannedRef.current = true
 
-    const token = match[1]
-
-    // Stop the scanner
-    scannerRef.current?.stop().catch(() => {})
+    try { await scannerRef.current?.stop() } catch { /* ignore */ }
 
     try {
-      const data = await API.get(`/event-tickets/token/${token}`) as any
+      const data = await API.get(`/event-tickets/token/${match[1]}`) as any
       setTicket(data)
       setScanState('loaded')
     } catch (err: any) {
+      scannedRef.current = false
       if (err.status === 404) setScanState('not_found')
       else { setScanState('error'); toast.error('Failed to load ticket') }
     }
@@ -134,6 +140,7 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
 
   /* ── Reset scanner ───────────────────────────── */
   const resetScanner = () => {
+    scannedRef.current = false
     setTicket(null)
     setScannerReady(false)
     setScannerError('')
