@@ -537,7 +537,7 @@ export default function VotingSessionPage({
       setPageState('loading')
       try {
         const res = await fetch(`${API}/voting-sessions/${token}`)
-        if (!res.ok) { setPageState(res.status === 404 ? 'invalid' : 'error'); return }
+        if (!res.ok) { setPageState(res.status === 404 || res.status === 400 ? 'invalid' : 'error'); return }
         const data: VotingSessionData = await res.json()
         if (!data.isActive) { setPageState('invalid'); return }
         if (data.expiresAt && new Date(data.expiresAt) < new Date()) { setPageState('invalid'); return }
