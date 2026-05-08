@@ -387,11 +387,11 @@ function EventCard({
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setStatusMenu(false)} />
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                        initial={{ opacity: 0, scale: 0.9, y: 4 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: -4 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 4 }}
                         transition={{ duration: 0.13 }}
-                        className="absolute left-0 mt-1 w-44 rounded-xl overflow-hidden z-50"
+                        className="absolute left-0 bottom-full mb-1 w-44 rounded-xl overflow-hidden z-50"
                         style={{
                           background: 'linear-gradient(145deg, #0a1c11, #061510)',
                           border: '1px solid rgba(255,255,255,0.08)',
