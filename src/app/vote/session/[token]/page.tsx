@@ -428,25 +428,45 @@ function SubmitModal({
           </div>
 
           {/* Vote summary */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             {sessionData.elections.map(e => {
               const vote = votes[e._id]
               const candidate = vote && vote !== 'ABSTAIN'
                 ? e.candidates.find(c => c._id === vote)
                 : null
+              const isAbstain = vote === 'ABSTAIN'
               return (
-                <div
-                  key={e._id}
-                  className="flex items-center justify-between py-2.5 border-b border-white/[0.04] last:border-0 gap-4"
-                >
-                  <p className="text-sm text-white/50 min-w-0 truncate">{e.position}</p>
-                  <p className={`text-sm font-bold shrink-0 ${
-                    candidate ? 'text-emerald-400' :
-                    vote === 'ABSTAIN' ? 'text-white/30' :
-                    'text-white/20'
+                <div key={e._id}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
+                    candidate
+                      ? 'bg-emerald-500/5 border-emerald-500/15'
+                      : isAbstain
+                      ? 'bg-white/[0.02] border-white/[0.05]'
+                      : 'bg-rose-500/5 border-rose-500/10'
                   }`}>
-                    {candidate ? candidate.name : vote === 'ABSTAIN' ? 'Abstained' : 'Not voted'}
-                  </p>
+                  {candidate?.photo ? (
+                    <img src={candidate.photo} alt={candidate.name}
+                      className="w-9 h-9 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-black ${
+                      candidate ? 'bg-emerald-500/20 text-emerald-400'
+                      : isAbstain ? 'bg-white/[0.05] text-white/25'
+                      : 'bg-rose-500/10 text-rose-400/50'
+                    }`}>
+                      {candidate ? candidate.name[0].toUpperCase() : isAbstain ? '—' : '?'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">{e.position}</p>
+                    <p className={`text-sm font-bold truncate ${
+                      candidate ? 'text-white' : isAbstain ? 'text-white/35' : 'text-rose-400/60'
+                    }`}>
+                      {candidate ? candidate.name : isAbstain ? 'Abstaining' : 'No selection'}
+                    </p>
+                  </div>
+                  {candidate && <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />}
+                  {isAbstain && <span className="text-[10px] text-white/25 shrink-0">skipping</span>}
+                  {!candidate && !isAbstain && <AlertTriangle className="w-4 h-4 text-rose-400/50 shrink-0" />}
                 </div>
               )
             })}

@@ -64,25 +64,56 @@ function CandidateAvatar({ candidate }: { candidate: Candidate }) {
   )
 }
 
-/* ─── Vote bar ───────────────────────────────────── */
-function VoteBar({ candidate, totalVotes }: { candidate: Candidate; totalVotes: number }) {
+/* ─── Result row ─────────────────────────────────── */
+function ResultRow({ candidate, totalVotes, rank, isClosed }: {
+  candidate: Candidate; totalVotes: number; rank: number; isClosed: boolean
+}) {
   const pct = totalVotes > 0 ? Math.round((candidate.voteCount / totalVotes) * 100) : 0
+  const isLeader = rank === 1 && candidate.voteCount > 0
+
   return (
-    <div className="flex items-center gap-3">
+    <div className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${
+      isLeader && isClosed
+        ? 'bg-amber-500/5 border border-amber-500/15'
+        : isLeader
+        ? 'bg-emerald-500/5 border border-emerald-500/10'
+        : 'bg-transparent'
+    }`}>
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black ${
+        isLeader ? 'bg-amber-500/20 text-amber-400' : 'bg-white/[0.05] text-white/25'
+      }`}>
+        {rank}
+      </div>
+
       <CandidateAvatar candidate={candidate} />
+
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-sm text-white/80 font-medium truncate">{candidate.name}</span>
-          <span className="text-xs text-white/40 ml-2 shrink-0">{candidate.voteCount} · {pct}%</span>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-sm text-white/85 font-semibold truncate">{candidate.name}</span>
+          {isClosed && isLeader && (
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[9px] font-black tracking-wider shrink-0">
+              WINNER
+            </span>
+          )}
+          {!isClosed && isLeader && totalVotes > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[9px] font-bold shrink-0">
+              leading
+            </span>
+          )}
         </div>
-        <div className="w-full h-1.5 rounded-full bg-white/[0.06]">
+        <div className="w-full h-2 rounded-full bg-white/[0.06]">
           <motion.div
-            className="h-full bg-emerald-500 rounded-full"
+            className={`h-full rounded-full ${isLeader ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-white/20'}`}
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
           />
         </div>
+      </div>
+
+      <div className="text-right shrink-0">
+        <p className={`text-base font-black ${isLeader ? 'text-emerald-400' : 'text-white/35'}`}>{pct}%</p>
+        <p className="text-[10px] text-white/25">{candidate.voteCount} vote{candidate.voteCount !== 1 ? 's' : ''}</p>
       </div>
     </div>
   )
@@ -632,9 +663,17 @@ function ElectionCard({
                   </div>
                 ))
               ) : (
-                election.candidates.map(c => (
-                  <VoteBar key={c._id} candidate={c} totalVotes={election.totalVotes} />
-                ))
+                [...election.candidates]
+                  .sort((a, b) => b.voteCount - a.voteCount)
+                  .map((c, i) => (
+                    <ResultRow
+                      key={c._id}
+                      candidate={c}
+                      totalVotes={election.totalVotes}
+                      rank={i + 1}
+                      isClosed={election.status === 'CLOSED'}
+                    />
+                  ))
               )}
             </div>
           ) : (
