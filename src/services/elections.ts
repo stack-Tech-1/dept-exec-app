@@ -50,6 +50,9 @@ class ElectionsService {
   async updateStatus(electionId: string, status: string): Promise<Election> {
     return API.patch(`/elections/${electionId}/status`, { status }) as any;
   }
+  async deleteElection(id: string): Promise<void> {
+    return API.delete(`/elections/${id}`) as any;
+  }
 }
 
 export const electionsService = new ElectionsService();

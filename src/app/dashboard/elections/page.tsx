@@ -562,17 +562,20 @@ function CreateVotingSessionModal({
 
 /* ─── Election Card ──────────────────────────────── */
 function ElectionCard({
-  election, isAdmin, onUpdate
+  election, isAdmin, onUpdate, onDelete
 }: {
   election: Election
   isAdmin: boolean
   onUpdate: (e: Election) => void
+  onDelete: (id: string) => void
 }) {
   const [addingCandidate, setAddingCandidate] = useState(false)
   const [statusLoading, setStatusLoading] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [cardError, setCardError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!cardError) return
@@ -602,6 +605,19 @@ function ElectionCard({
     navigator.clipboard.writeText(`${window.location.origin}/vote/${election._id}`)
     setCopiedLink(true)
     setTimeout(() => setCopiedLink(false), 2000)
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await electionsService.deleteElection(election._id)
+      onDelete(election._id)
+    } catch (err: any) {
+      setCardError(err?.message || 'Failed to delete election')
+      setConfirmDelete(false)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -724,6 +740,28 @@ function ElectionCard({
                 {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
                 {copiedLink ? 'Copied!' : 'Share Voting Link'}
               </button>
+
+              {election.status !== 'OPEN' && (
+                confirmDelete ? (
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <button type="button" onClick={() => setConfirmDelete(false)}
+                      className="px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 text-xs font-medium hover:text-white/70 transition-colors">
+                      Cancel
+                    </button>
+                    <button type="button" onClick={handleDelete} disabled={deleting}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/30 transition-colors disabled:opacity-40">
+                      {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      Yes, Delete
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setConfirmDelete(true)}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete
+                  </button>
+                )
+              )}
             </div>
           )}
         </div>
@@ -840,6 +878,10 @@ export default function ElectionsPage() {
     setElections(prev => prev.map(e => e._id === updated._id ? updated : e))
   }
 
+  const handleDeleteElection = (id: string) => {
+    setElections(prev => prev.filter(e => e._id !== id))
+  }
+
   const stats = [
     { label: 'Total Elections', value: countTotal, icon: Trophy, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
     { label: 'Currently Open', value: countOpen, icon: Vote, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
@@ -946,6 +988,7 @@ export default function ElectionsPage() {
                 election={e}
                 isAdmin={isAdmin}
                 onUpdate={updateElection}
+                onDelete={handleDeleteElection}
               />
             ))}
           </div>
