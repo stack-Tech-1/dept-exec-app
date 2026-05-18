@@ -26,6 +26,7 @@ interface GuestTicketData {
     time: string
     venue: string
     isPaidEvent: boolean
+    registrationBrandName?: string
   }
 }
 
@@ -248,7 +249,9 @@ export default function GuestTicketPage({ params }: { params: Promise<{ token: s
 
                 {/* Bottom bar */}
                 <div className="px-6 py-3 border-t border-white/5 flex items-center justify-between">
-                  <p className="text-[10px] text-white/20 uppercase tracking-widest">IESA · Univ. of Ibadan</p>
+                  <p className="text-[10px] text-white/20 uppercase tracking-widest">
+                    {ticket.event.registrationBrandName || 'IESA'} · Univ. of Ibadan
+                  </p>
                   <p className="text-[10px] text-white/10 font-mono">{ticket.token.slice(0, 8)}…</p>
                 </div>
               </div>

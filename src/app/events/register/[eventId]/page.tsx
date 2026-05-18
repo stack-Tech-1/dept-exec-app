@@ -18,6 +18,7 @@ interface EventInfo {
   venue: string
   isPaidEvent: boolean
   guestRegistrationEnabled: boolean
+  registrationBrandName?: string
 }
 
 /* ── Component ───────────────────────────────────── */
@@ -144,7 +145,7 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                   {event?.title && <p className="text-sm text-white/35 mt-1">{event.title}</p>}
                   <p className="text-sm text-white/30 mt-3">Guest registration is not currently open for this event.</p>
                 </div>
-                <p className="text-[11px] text-white/20">IESA — University of Ibadan</p>
+                <p className="text-[11px] text-white/20">{event?.registrationBrandName || 'IESA'} — University of Ibadan</p>
               </div>
             </motion.div>
           )}
@@ -175,7 +176,16 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                       <UserPlus className="w-7 h-7 text-white" />
                     </div>
                     <div className="text-center">
-                      <p className="text-[11px] text-emerald-400/65 font-bold tracking-[0.2em] uppercase">IESA</p>
+                      {event.registrationBrandName ? (
+                        <p
+                          className="font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-lime-300 to-emerald-400"
+                          style={{ fontFamily: 'Syne, sans-serif', fontSize: 'clamp(1.4rem, 5vw, 1.9rem)' }}
+                        >
+                          {event.registrationBrandName}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-emerald-400/65 font-bold tracking-[0.2em] uppercase">IESA</p>
+                      )}
                       <h1 className="text-2xl font-black text-white mt-0.5" style={{ fontFamily: 'Syne, sans-serif' }}>
                         Event Registration
                       </h1>
@@ -319,7 +329,9 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                   </form>
 
                   <p className="text-center text-[11px] text-white/18">
-                    IESA — Industrial Engineering Students' Association
+                    {event.registrationBrandName
+                      ? `${event.registrationBrandName} · University of Ibadan`
+                      : "IESA — Industrial Engineering Students' Association"}
                   </p>
                 </div>
               </div>
@@ -362,7 +374,11 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                     </p>
                   </motion.div>
 
-                  <p className="text-[11px] text-white/18">IESA — Industrial Engineering Students' Association</p>
+                  <p className="text-[11px] text-white/18">
+                    {event?.registrationBrandName
+                      ? `${event.registrationBrandName} · University of Ibadan`
+                      : "IESA — Industrial Engineering Students' Association"}
+                  </p>
                 </div>
               </div>
             </motion.div>

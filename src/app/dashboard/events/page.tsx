@@ -111,6 +111,7 @@ function EventModal({
   })
   const [isPaidEvent, setIsPaidEvent] = useState(event?.isPaidEvent ?? false)
   const [guestRegistrationEnabled, setGuestRegistrationEnabled] = useState(event?.guestRegistrationEnabled ?? false)
+  const [registrationBrandName, setRegistrationBrandName] = useState(event?.registrationBrandName ?? '')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
@@ -131,6 +132,7 @@ function EventModal({
       ticketPrice: isPaidEvent && form.ticketPrice ? Number(form.ticketPrice) : undefined,
       ticketItems: isPaidEvent ? form.ticketItems.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       guestRegistrationEnabled,
+      registrationBrandName: registrationBrandName.trim() || undefined,
     }
     try {
       if (isEdit && event) {
@@ -282,6 +284,21 @@ function EventModal({
                 <p className="text-[11px] text-white/30">Allow non-members to register via a public link</p>
               </div>
             </label>
+
+            {guestRegistrationEnabled && (
+              <div className="mt-3">
+                <label className={labelCls}>Registration Brand Name</label>
+                <input
+                  className={inputCls}
+                  value={registrationBrandName}
+                  onChange={e => setRegistrationBrandName(e.target.value)}
+                  placeholder="e.g. ENERGY 2FACTOR (leave blank for IESA)"
+                />
+                <p className="text-[11px] text-white/25 mt-1.5">
+                  Shown on the public registration page and confirmation emails in place of "IESA".
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

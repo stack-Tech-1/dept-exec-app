@@ -22,6 +22,7 @@ export interface Event {
   ticketPrice?: number;
   ticketItems?: string[];
   guestRegistrationEnabled?: boolean;
+  registrationBrandName?: string;
   createdAt: string;
 }
 
