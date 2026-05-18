@@ -11,9 +11,12 @@ import { toast } from 'sonner'
 interface TicketItem { name: string; claimed: boolean; claimedAt?: string }
 interface ScannedTicket {
   _id: string
-  memberName: string
+  name: string
   matricNumber?: string
-  paymentStatus: 'PENDING' | 'CONFIRMED'
+  guestType?: 'NON_STUDENT' | 'EXTERNAL_STUDENT'
+  guestDepartment?: string
+  isGuest: boolean
+  paymentStatus: 'PENDING' | 'CONFIRMED' | 'NOT_REQUIRED'
   checkedIn: boolean
   checkInTime?: string
   items: TicketItem[]
@@ -78,15 +81,45 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
   /* ── Handle scan result ──────────────────────── */
   const onScanSuccess = async (decodedText: string) => {
     if (scannedRef.current) return
-    const match = decodedText.match(/\/picnic\/ticket\/([a-f0-9]{64})/)
-    if (!match) return
+
+    const memberMatch = decodedText.match(/\/picnic\/ticket\/([a-f0-9]{64})/)
+    const guestMatch = decodedText.match(/\/events\/guest-ticket\/([a-f0-9]{64})/)
+    if (!memberMatch && !guestMatch) return
     scannedRef.current = true
 
     try { await scannerRef.current?.stop() } catch { /* ignore */ }
 
     try {
-      const data = await API.get(`/event-tickets/token/${match[1]}`) as any
-      setTicket(data)
+      if (memberMatch) {
+        const data = await API.get(`/event-tickets/token/${memberMatch[1]}`) as any
+        setTicket({
+          _id: data._id,
+          name: data.memberName,
+          matricNumber: data.matricNumber,
+          isGuest: false,
+          paymentStatus: data.paymentStatus,
+          checkedIn: data.checkedIn,
+          checkInTime: data.checkInTime,
+          items: data.items,
+          token: data.token,
+          event: data.event,
+        })
+      } else if (guestMatch) {
+        const data = await API.get(`/guests/token/${guestMatch[1]}`) as any
+        setTicket({
+          _id: data._id,
+          name: data.name,
+          guestType: data.type,
+          guestDepartment: data.department,
+          isGuest: true,
+          paymentStatus: data.paymentStatus,
+          checkedIn: data.checkedIn,
+          checkInTime: data.checkInTime,
+          items: data.items,
+          token: data.token,
+          event: data.event,
+        })
+      }
       setScanState('loaded')
     } catch (err: any) {
       scannedRef.current = false
@@ -100,12 +133,17 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
     if (!ticket) return
     setCheckingIn(true)
     try {
-      const res = await API.put(`/event-tickets/token/${ticket.token}/checkin`, {}) as any
-      toast.success(res.message || `✅ ${ticket.memberName} checked in!`)
+      let res: any
+      if (ticket.isGuest) {
+        res = await API.patch(`/guests/token/${ticket.token}/checkin`, {})
+      } else {
+        res = await API.put(`/event-tickets/token/${ticket.token}/checkin`, {})
+      }
+      toast.success(res.message || `✅ ${ticket.name} checked in!`)
       setTicket(prev => prev ? { ...prev, checkedIn: true, checkInTime: new Date().toISOString() } : prev)
     } catch (err: any) {
       if (err.data?.alreadyCheckedIn) {
-        toast.info(`${ticket.memberName} was already checked in`)
+        toast.info(`${ticket.name} was already checked in`)
         setTicket(prev => prev ? { ...prev, checkedIn: true } : prev)
       } else {
         toast.error(err.message || 'Check-in failed')
@@ -120,7 +158,12 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
     if (!ticket) return
     setRedeeming(itemName)
     try {
-      const res = await API.put(`/event-tickets/token/${ticket.token}/redeem`, { itemName }) as any
+      let res: any
+      if (ticket.isGuest) {
+        res = await API.patch(`/guests/token/${ticket.token}/redeem`, { itemName })
+      } else {
+        res = await API.put(`/event-tickets/token/${ticket.token}/redeem`, { itemName })
+      }
       toast.success(res.message)
       setTicket(prev => {
         if (!prev) return prev
@@ -190,7 +233,7 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
                   </div>
                   <div className="p-4 flex items-center gap-2 justify-center">
                     <ScanLine className="w-4 h-4 text-emerald-400 animate-pulse" />
-                    <p className="text-white/40 text-sm">Point camera at a member's ticket QR code</p>
+                    <p className="text-white/40 text-sm">Point camera at a member or guest ticket QR code</p>
                   </div>
                 </>
               )}
@@ -206,13 +249,23 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
               <div className={`h-1.5 ${ticket.paymentStatus === 'CONFIRMED' ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-amber-500'}`} />
 
               <div className="p-5 space-y-4">
-                {/* Member info */}
+                {/* Member/Guest info */}
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-xl font-black text-white font-display">{ticket.memberName}</h2>
+                    <h2 className="text-xl font-black text-white font-display">{ticket.name}</h2>
                     {ticket.matricNumber && <p className="text-white/40 text-sm">{ticket.matricNumber}</p>}
+                    {ticket.isGuest && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-violet-300 text-xs font-medium">
+                          {ticket.guestType === 'EXTERNAL_STUDENT' ? 'External Student' : 'Guest'}
+                        </span>
+                        {ticket.guestDepartment && (
+                          <span className="text-white/30 text-xs">{ticket.guestDepartment}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {ticket.paymentStatus !== 'CONFIRMED' && (
+                  {ticket.paymentStatus === 'PENDING' && (
                     <span className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
                       Unpaid
                     </span>
@@ -220,15 +273,15 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
                 </div>
 
                 {/* Unpaid warning */}
-                {ticket.paymentStatus !== 'CONFIRMED' && (
+                {ticket.paymentStatus === 'PENDING' && (
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
                     <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                     <p className="text-amber-300/70 text-sm">This ticket has not been paid for. Do not allow entry.</p>
                   </div>
                 )}
 
-                {/* Check-in */}
-                {ticket.paymentStatus === 'CONFIRMED' && (
+                {/* Check-in (confirmed or not-required = free event) */}
+                {(ticket.paymentStatus === 'CONFIRMED' || ticket.paymentStatus === 'NOT_REQUIRED') && (
                   <div>
                     {ticket.checkedIn ? (
                       <div className="flex items-center gap-2 p-3 rounded-xl bg-sky-500/10 border border-sky-500/20">
@@ -256,7 +309,7 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
                 )}
 
                 {/* Items */}
-                {ticket.paymentStatus === 'CONFIRMED' && ticket.items.length > 0 && (
+                {(ticket.paymentStatus === 'CONFIRMED' || ticket.paymentStatus === 'NOT_REQUIRED') && ticket.items.length > 0 && (
                   <div>
                     <p className="text-white/30 text-xs uppercase tracking-wider mb-2">Redeem Items</p>
                     <div className="space-y-2">
@@ -307,7 +360,7 @@ export default function ScanPage({ params }: { params: Promise<{ id: string }> }
               className="w-full mt-3 py-3 rounded-xl border border-white/10 hover:border-white/20 text-white/50 hover:text-white/80 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <ScanLine className="w-4 h-4" />
-              Scan Next Member
+              Scan Next Ticket
             </button>
           </motion.div>
         )}

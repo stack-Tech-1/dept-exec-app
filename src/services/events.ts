@@ -21,6 +21,7 @@ export interface Event {
   isPaidEvent?: boolean;
   ticketPrice?: number;
   ticketItems?: string[];
+  guestRegistrationEnabled?: boolean;
   createdAt: string;
 }
 

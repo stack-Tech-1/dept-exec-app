@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays, Clock, CheckCircle, XCircle, MapPin,
-  Edit, ChevronDown, X, AlertCircle, Plus, Users, Ticket
+  Edit, ChevronDown, X, AlertCircle, Plus, Users, Ticket, Link2
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { eventsService, type Event, type EventStats } from '@/services/events'
@@ -110,6 +110,7 @@ function EventModal({
     ticketItems: event?.ticketItems?.join(', ') ?? '',
   })
   const [isPaidEvent, setIsPaidEvent] = useState(event?.isPaidEvent ?? false)
+  const [guestRegistrationEnabled, setGuestRegistrationEnabled] = useState(event?.guestRegistrationEnabled ?? false)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
@@ -129,6 +130,7 @@ function EventModal({
       isPaidEvent,
       ticketPrice: isPaidEvent && form.ticketPrice ? Number(form.ticketPrice) : undefined,
       ticketItems: isPaidEvent ? form.ticketItems.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      guestRegistrationEnabled,
     }
     try {
       if (isEdit && event) {
@@ -265,6 +267,21 @@ function EventModal({
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="border-t border-white/[0.06]">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                onClick={() => setGuestRegistrationEnabled(v => !v)}
+                className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${guestRegistrationEnabled ? 'bg-emerald-600' : 'bg-white/10'}`}
+              >
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${guestRegistrationEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white/70">Guest Registration</p>
+                <p className="text-[11px] text-white/30">Allow non-members to register via a public link</p>
+              </div>
+            </label>
           </div>
         </div>
 
@@ -413,11 +430,24 @@ function EventCard({
               <Edit className="w-3 h-3" />Edit
             </button>
 
-            {event.isPaidEvent && (
+            {(event.isPaidEvent || event.guestRegistrationEnabled) && (
               <a href={`/dashboard/events/${event._id}/tickets`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-all">
-                <Ticket className="w-3 h-3" />Tickets
+                <Ticket className="w-3 h-3" />Manage
               </a>
+            )}
+
+            {event.guestRegistrationEnabled && (
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/events/register/${event._id}`
+                  navigator.clipboard.writeText(link).then(() => alert('Guest registration link copied!'))
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-semibold hover:bg-violet-500/20 transition-all"
+                title="Copy guest registration link"
+              >
+                <Link2 className="w-3 h-3" />Link
+              </button>
             )}
 
             {transitions.length > 0 && (
