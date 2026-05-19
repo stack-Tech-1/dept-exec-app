@@ -19,6 +19,7 @@ interface EventInfo {
   isPaidEvent: boolean
   guestRegistrationEnabled: boolean
   registrationBrandName?: string
+  coverImage?: string
 }
 
 /* ── Component ───────────────────────────────────── */
@@ -172,9 +173,14 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                 <div className="p-6 space-y-5">
                   {/* Header */}
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] flex items-center justify-center shadow-[0_8px_24px_rgba(13,124,61,0.4)]">
-                      <UserPlus className="w-7 h-7 text-white" />
-                    </div>
+                    {event.coverImage ? (
+                      <img src={event.coverImage} alt={event.title}
+                        className="w-14 h-14 rounded-2xl object-cover shadow-[0_8px_24px_rgba(13,124,61,0.4)]" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] flex items-center justify-center shadow-[0_8px_24px_rgba(13,124,61,0.4)]">
+                        <UserPlus className="w-7 h-7 text-white" />
+                      </div>
+                    )}
                     <div className="text-center">
                       {event.registrationBrandName ? (
                         <p
@@ -224,7 +230,7 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                       <div className="flex rounded-xl bg-white/[0.04] border border-white/[0.08] p-1 gap-1">
                         {([
                           { value: 'NON_STUDENT', label: 'Non-Student' },
-                          { value: 'EXTERNAL_STUDENT', label: 'External Student' },
+                          { value: 'EXTERNAL_STUDENT', label: 'Allied Dept Student' },
                         ] as { value: GuestType; label: string }[]).map(opt => (
                           <button
                             key={opt.value}

@@ -21,6 +21,7 @@ export interface Event {
   isPaidEvent?: boolean;
   ticketPrice?: number;
   ticketItems?: string[];
+  coverImage?: string;
   guestRegistrationEnabled?: boolean;
   registrationBrandName?: string;
   createdAt: string;
@@ -66,6 +67,14 @@ class EventsService {
 
   async getStats(): Promise<EventStats> {
     return API.get('/events/stats') as any;
+  }
+
+  async uploadCoverImage(file: File): Promise<{ url: string }> {
+    const fd = new FormData();
+    fd.append('coverImage', file);
+    return API.post('/events/upload-image', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }) as any;
   }
 }
 

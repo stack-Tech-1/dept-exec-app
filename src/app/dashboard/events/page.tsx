@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays, Clock, CheckCircle, XCircle, MapPin,
-  Edit, ChevronDown, X, AlertCircle, Plus, Users, Ticket, Link2
+  Edit, ChevronDown, X, AlertCircle, Plus, Users, Ticket, Link2, ImagePlus
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { eventsService, type Event, type EventStats } from '@/services/events'
@@ -112,9 +112,21 @@ function EventModal({
   const [isPaidEvent, setIsPaidEvent] = useState(event?.isPaidEvent ?? false)
   const [guestRegistrationEnabled, setGuestRegistrationEnabled] = useState(event?.guestRegistrationEnabled ?? false)
   const [registrationBrandName, setRegistrationBrandName] = useState(event?.registrationBrandName ?? '')
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
+  const [coverImagePreview, setCoverImagePreview] = useState(event?.coverImage ?? '')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCoverImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setCoverImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,18 +135,24 @@ function EventModal({
     if (!form.time.trim())  { setErr('Time is required'); return }
     if (!form.venue.trim()) { setErr('Venue is required'); return }
     setSaving(true); setErr('')
-    const payload: any = {
-      ...form,
-      expectedAttendance: form.expectedAttendance ? Number(form.expectedAttendance) : undefined,
-      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      endDate: form.endDate || undefined,
-      isPaidEvent,
-      ticketPrice: isPaidEvent && form.ticketPrice ? Number(form.ticketPrice) : undefined,
-      ticketItems: isPaidEvent ? form.ticketItems.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      guestRegistrationEnabled,
-      registrationBrandName: registrationBrandName.trim() || undefined,
-    }
     try {
+      let coverImageUrl = event?.coverImage
+      if (coverImageFile) {
+        const { url } = await eventsService.uploadCoverImage(coverImageFile)
+        coverImageUrl = url
+      }
+      const payload: any = {
+        ...form,
+        expectedAttendance: form.expectedAttendance ? Number(form.expectedAttendance) : undefined,
+        tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        endDate: form.endDate || undefined,
+        isPaidEvent,
+        ticketPrice: isPaidEvent && form.ticketPrice ? Number(form.ticketPrice) : undefined,
+        ticketItems: isPaidEvent ? form.ticketItems.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+        guestRegistrationEnabled,
+        registrationBrandName: registrationBrandName.trim() || undefined,
+        coverImage: coverImageUrl || undefined,
+      }
       if (isEdit && event) {
         await eventsService.updateEvent(event._id, payload)
       } else {
@@ -184,6 +202,37 @@ function EventModal({
               <p className="text-rose-400 text-sm">{err}</p>
             </div>
           )}
+
+          {/* Cover Image Upload */}
+          <div>
+            <label className={labelCls}>Cover Image</label>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-all overflow-hidden"
+              style={{ height: coverImagePreview ? 'auto' : '88px' }}>
+              {coverImagePreview ? (
+                <div className="relative group">
+                  <img src={coverImagePreview} alt="Cover" className="w-full h-36 object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="flex items-center gap-2 text-white text-sm font-semibold">
+                      <ImagePlus className="w-4 h-4" />Change Image
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center gap-1.5 text-white/30">
+                  <ImagePlus className="w-5 h-5" />
+                  <span className="text-xs font-medium">Upload cover image</span>
+                </div>
+              )}
+            </button>
+            {coverImagePreview && (
+              <button type="button" onClick={() => { setCoverImagePreview(''); setCoverImageFile(null) }}
+                className="text-[10px] text-white/25 hover:text-rose-400 transition-colors mt-1.5">
+                Remove image
+              </button>
+            )}
+          </div>
 
           <div>
             <label className={labelCls}>Title *</label>

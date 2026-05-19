@@ -8,6 +8,7 @@ import {
   Users, Trophy, BarChart2, Check, AlertTriangle, Loader2,
   Link2, CheckCircle
 } from 'lucide-react'
+import Link from 'next/link'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 import { electionsService, type Election, type Candidate } from '@/services/elections'
@@ -771,6 +772,15 @@ function ElectionCard({
                 {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
                 {copiedLink ? 'Copied!' : 'Share Voting Link'}
               </button>
+
+              {election.status === 'CLOSED' && (
+                <Link href={`/dashboard/elections/${election._id}/results`}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/25
+                    text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition-colors">
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  View Results
+                </Link>
+              )}
 
               {election.status !== 'OPEN' && (
                 confirmDelete ? (
