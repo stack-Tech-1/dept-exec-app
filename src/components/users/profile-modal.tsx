@@ -35,7 +35,7 @@ function FieldIcon({ icon: Icon, children, disabled }: { icon: any; children: Re
 }
 
 export default function ProfileModal({ isOpen, onClose, user, onUpdate }: ProfileModalProps) {
-  const [formData, setFormData] = useState({ name: '', email: '', position: '', department: '', bio: '', phone: '' })
+  const [formData, setFormData] = useState({ name: '', email: '', position: '', department: '', bio: '', phone: '', matricNumber: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -44,7 +44,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
 
   useEffect(() => {
     if (user && isOpen) {
-      setFormData({ name: user.name || '', email: user.email || '', position: user.position || '', department: user.department || '', bio: user.bio || '', phone: user.phone || '' })
+      setFormData({ name: user.name || '', email: user.email || '', position: user.position || '', department: user.department || '', bio: user.bio || '', phone: user.phone || '', matricNumber: user.matricNumber || '' })
       setError(''); setSaved(false)
     }
   }, [user, isOpen])
@@ -185,6 +185,16 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
                 <input type="tel" value={formData.phone} onChange={e => set('phone', e.target.value)}
                   placeholder="+234 800 000 0000" className={inputCls} />
               </div>
+
+              {/* Matric Number (admin editing another user) */}
+              {currentUser?.role === 'ADMIN' && !isOwnProfile && (
+                <div>
+                  <Label>Matric Number</Label>
+                  <input type="text" value={formData.matricNumber} onChange={e => set('matricNumber', e.target.value)}
+                    placeholder="e.g. IPE/2021/001" className={inputCls} />
+                  <p className="text-[10px] text-white/20 mt-1">Set to block this executive from voting</p>
+                </div>
+              )}
 
               {/* Admin role toggle */}
               {currentUser?.role === 'ADMIN' && !isOwnProfile && (

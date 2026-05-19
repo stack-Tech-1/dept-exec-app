@@ -10,6 +10,7 @@ export interface User {
   department?: string;
   bio?: string;
   phone?: string;
+  matricNumber?: string;
   lastLogin?: string;
   isActive: boolean;
   createdAt: string;
