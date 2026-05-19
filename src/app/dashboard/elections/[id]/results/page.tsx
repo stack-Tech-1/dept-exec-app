@@ -50,16 +50,14 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
     if (!captureRef.current || !election) return
     setDownloading(true)
     try {
-      const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(captureRef.current, {
-        backgroundColor: '#030a05',
+      const domtoimage = await import('dom-to-image-more')
+      const dataUrl = await domtoimage.toPng(captureRef.current, {
+        quality: 1,
         scale: 2,
-        useCORS: true,
-        logging: false,
       })
       const link = document.createElement('a')
       link.download = `${election.title.replace(/\s+/g, '-').toLowerCase()}-results.png`
-      link.href = canvas.toDataURL('image/png')
+      link.href = dataUrl
       link.click()
     } catch (err) {
       console.error('Download failed:', err)
