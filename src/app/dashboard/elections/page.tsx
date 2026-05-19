@@ -11,7 +11,7 @@ import {
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 import { electionsService, type Election, type Candidate } from '@/services/elections'
-import { votingSessionService, type VotingSession } from '@/services/votingSession'
+import { votingSessionService, getSessionStatus, type VotingSession } from '@/services/votingSession'
 import { socket } from '@/lib/socket'
 
 /* ─── CountUp ────────────────────────────────────── */
@@ -869,8 +869,8 @@ export default function ElectionsPage() {
   const handleDeactivateSession = async (token: string) => {
     setDeactivatingToken(token)
     try {
-      const updated = await votingSessionService.deactivateSession(token)
-      setVotingSessions(prev => prev.map(s => s.token === token ? updated : s))
+      await votingSessionService.deactivateSession(token)
+      setVotingSessions(prev => prev.map(s => s.token === token ? { ...s, isActive: false } : s))
     } catch { /* silent */ }
     finally { setDeactivatingToken(null) }
   }
@@ -1078,18 +1078,23 @@ export default function ElectionsPage() {
                       {s.expiresAt && ` · expires ${new Date(s.expiresAt).toLocaleDateString()}`}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                    s.status === 'ACTIVE'
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : s.status === 'DEACTIVATED'
-                      ? 'bg-rose-500/15 text-rose-400'
-                      : 'bg-white/[0.07] text-white/40'
-                  }`}>
-                    {s.status === 'ACTIVE' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
-                    {s.status}
-                  </span>
+                  {(() => {
+                    const sessionStatus = getSessionStatus(s)
+                    return (
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        sessionStatus === 'ACTIVE'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : sessionStatus === 'DEACTIVATED'
+                          ? 'bg-rose-500/15 text-rose-400'
+                          : 'bg-white/[0.07] text-white/40'
+                      }`}>
+                        {sessionStatus === 'ACTIVE' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        )}
+                        {sessionStatus}
+                      </span>
+                    )
+                  })()}
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
@@ -1102,7 +1107,7 @@ export default function ElectionsPage() {
                       {sessionCopied === s.token ? 'Copied!' : 'Copy Link'}
                     </button>
 
-                    {s.status === 'ACTIVE' && isAdmin && (
+                    {getSessionStatus(s) === 'ACTIVE' && isAdmin && (
                       <>
                         <button
                           type="button"
@@ -1129,7 +1134,7 @@ export default function ElectionsPage() {
                       </>
                     )}
 
-                    {s.status !== 'ACTIVE' && isAdmin && (
+                    {getSessionStatus(s) !== 'ACTIVE' && isAdmin && (
                       confirmDeleteSessionToken === s.token ? (
                         <div className="flex items-center gap-1.5">
                           <button

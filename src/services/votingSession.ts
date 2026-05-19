@@ -4,10 +4,17 @@ export interface VotingSession {
   token: string
   label: string
   elections: string[]
+  isActive: boolean
   expiresAt?: string
-  status: 'ACTIVE' | 'EXPIRED' | 'DEACTIVATED'
+  status?: 'ACTIVE' | 'EXPIRED' | 'DEACTIVATED'
   createdAt: string
   createdBy?: { name: string }
+}
+
+export function getSessionStatus(s: VotingSession): 'ACTIVE' | 'EXPIRED' | 'DEACTIVATED' {
+  if (!s.isActive) return 'DEACTIVATED'
+  if (s.expiresAt && new Date(s.expiresAt) < new Date()) return 'EXPIRED'
+  return 'ACTIVE'
 }
 
 class VotingSessionService {
