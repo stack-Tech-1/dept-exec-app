@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Download, Trophy, Users, Calendar, Award } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
 import Link from 'next/link'
 import { electionsService, type Election, type Candidate } from '@/services/elections'
 import { authService } from '@/services/auth'
@@ -59,6 +59,13 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
     el.style.maxWidth = '680px'
     el.style.margin   = '0'
 
+    window.getSelection()?.removeAllRanges()
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+
+    const styleTag = document.createElement('style')
+    styleTag.textContent = '* { outline: none !important; box-shadow: none !important; }'
+    document.head.appendChild(styleTag)
+
     await new Promise(r => setTimeout(r, 80))
 
     try {
@@ -71,6 +78,7 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
     } catch (err) {
       console.error('Download failed:', err)
     } finally {
+      styleTag.remove()
       el.style.width    = savedWidth
       el.style.maxWidth = savedMaxWidth
       el.style.margin   = savedMargin
@@ -146,7 +154,7 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
           <div className="relative">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-[0.15em] uppercase mb-4"
               style={{ background: 'rgba(13,124,61,0.15)', border: '1px solid rgba(13,124,61,0.3)', color: '#34d399' }}>
-              <Award className="w-3 h-3" />
+              🎖
               {election.position}
             </span>
             <h1 className="text-3xl font-black text-white mb-2" style={{ fontFamily: 'Syne, sans-serif', lineHeight: 1.15 }}>
@@ -155,13 +163,11 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
             <div className="flex items-center justify-center gap-4 text-[12px] text-white/35 mt-3">
               {closedDate && (
                 <span className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Closed {closedDate}
+                  📅 Closed {closedDate}
                 </span>
               )}
               <span className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
-                {election.totalVotes} vote{election.totalVotes !== 1 ? 's' : ''} cast
+                👥 {election.totalVotes} vote{election.totalVotes !== 1 ? 's' : ''} cast
               </span>
             </div>
           </div>
@@ -185,7 +191,6 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
               <div className="relative">
                 <div className="flex items-center justify-center gap-1.5 text-[11px] font-black tracking-[0.2em] uppercase mb-4"
                   style={{ color: '#fbbf24' }}>
-                  <Trophy className="w-3.5 h-3.5" />
                   Winner
                 </div>
                 <div className="flex justify-center mb-4">
