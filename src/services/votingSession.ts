@@ -22,6 +22,14 @@ class VotingSessionService {
   async deactivateSession(token: string): Promise<VotingSession> {
     return API.patch(`/voting-sessions/${token}/deactivate`, {}) as any
   }
+
+  async closeSessionElections(token: string): Promise<{ message: string }> {
+    return API.patch(`/voting-sessions/${token}/close-all`, {}) as any
+  }
+
+  async deleteSession(token: string): Promise<{ message: string }> {
+    return API.delete(`/voting-sessions/${token}`) as any
+  }
 }
 
 export const votingSessionService = new VotingSessionService()

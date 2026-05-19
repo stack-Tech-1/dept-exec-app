@@ -18,6 +18,7 @@ export interface Election {
   status: 'PENDING' | 'OPEN' | 'CLOSED';
   candidates: Candidate[];
   totalVotes: number;
+  undecidedCount?: number;
   createdBy: { name: string; position: string };
   openedAt?: string;
   closedAt?: string;

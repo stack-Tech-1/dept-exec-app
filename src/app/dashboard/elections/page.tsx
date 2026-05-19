@@ -679,17 +679,45 @@ function ElectionCard({
                   </div>
                 ))
               ) : (
-                [...election.candidates]
-                  .sort((a, b) => b.voteCount - a.voteCount)
-                  .map((c, i) => (
-                    <ResultRow
-                      key={c._id}
-                      candidate={c}
-                      totalVotes={election.totalVotes}
-                      rank={i + 1}
-                      isClosed={election.status === 'CLOSED'}
-                    />
-                  ))
+                <>
+                  {[...election.candidates]
+                    .sort((a, b) => b.voteCount - a.voteCount)
+                    .map((c, i) => (
+                      <ResultRow
+                        key={c._id}
+                        candidate={c}
+                        totalVotes={election.totalVotes}
+                        rank={i + 1}
+                        isClosed={election.status === 'CLOSED'}
+                      />
+                    ))
+                  }
+                  {(election.undecidedCount ?? 0) > 0 && (
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      <div className="w-6 h-6 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
+                        <span className="text-white/20 text-[10px] font-bold">—</span>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0 text-white/20 text-xs font-bold">
+                        ?
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white/30 font-medium mb-1">Undecided</p>
+                        <div className="w-full h-2 rounded-full bg-white/[0.06]">
+                          <div
+                            className="h-full rounded-full bg-white/10"
+                            style={{ width: `${Math.round((election.undecidedCount ?? 0) / ((election.totalVotes || 0) + (election.undecidedCount ?? 0)) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-base font-black text-white/25">
+                          {Math.round((election.undecidedCount ?? 0) / ((election.totalVotes || 0) + (election.undecidedCount ?? 0)) * 100)}%
+                        </p>
+                        <p className="text-[10px] text-white/20">{election.undecidedCount} voter{(election.undecidedCount ?? 0) !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : (
@@ -700,7 +728,10 @@ function ElectionCard({
 
           {/* Footer */}
           <div className="flex items-center justify-between text-[11px] text-white/30 pt-1 border-t border-white/[0.05]">
-            <span>{election.totalVotes} total votes</span>
+            <span>
+              {election.totalVotes} vote{election.totalVotes !== 1 ? 's' : ''}
+              {(election.undecidedCount ?? 0) > 0 && ` · ${election.undecidedCount} undecided`}
+            </span>
             <span>by {election.createdBy?.name}</span>
           </div>
 
@@ -795,6 +826,9 @@ export default function ElectionsPage() {
   const [votingSessions, setVotingSessions] = useState<VotingSession[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
   const [deactivatingToken, setDeactivatingToken] = useState<string | null>(null)
+  const [closingAllToken, setClosingAllToken] = useState<string | null>(null)
+  const [confirmDeleteSessionToken, setConfirmDeleteSessionToken] = useState<string | null>(null)
+  const [deletingSessionToken, setDeletingSessionToken] = useState<string | null>(null)
   const [sessionCopied, setSessionCopied] = useState<string | null>(null)
 
   const totalElections = elections.length
@@ -839,6 +873,31 @@ export default function ElectionsPage() {
       setVotingSessions(prev => prev.map(s => s.token === token ? updated : s))
     } catch { /* silent */ }
     finally { setDeactivatingToken(null) }
+  }
+
+  const handleCloseAllElections = async (token: string) => {
+    setClosingAllToken(token)
+    try {
+      await votingSessionService.closeSessionElections(token)
+      setVotingSessions(prev => prev.map(s =>
+        s.token === token ? { ...s, status: 'DEACTIVATED' as const } : s
+      ))
+      const refreshed = await electionsService.getElections()
+      setElections(Array.isArray(refreshed) ? refreshed : [])
+    } catch { /* silent */ }
+    finally { setClosingAllToken(null) }
+  }
+
+  const handleDeleteSession = async (token: string) => {
+    setDeletingSessionToken(token)
+    try {
+      await votingSessionService.deleteSession(token)
+      setVotingSessions(prev => prev.filter(s => s.token !== token))
+    } catch { /* silent */ }
+    finally {
+      setDeletingSessionToken(null)
+      setConfirmDeleteSessionToken(null)
+    }
   }
 
   const handleCopySessionLink = (token: string) => {
@@ -1031,7 +1090,7 @@ export default function ElectionsPage() {
                     )}
                     {s.status}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
                       onClick={() => handleCopySessionLink(s.token)}
@@ -1042,18 +1101,61 @@ export default function ElectionsPage() {
                         : <Share2 className="w-3.5 h-3.5" />}
                       {sessionCopied === s.token ? 'Copied!' : 'Copy Link'}
                     </button>
+
                     {s.status === 'ACTIVE' && isAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeactivateSession(s.token)}
-                        disabled={deactivatingToken === s.token}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors
-                          bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 disabled:opacity-40">
-                        {deactivatingToken === s.token
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : <X className="w-3.5 h-3.5" />}
-                        Deactivate
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleCloseAllElections(s.token)}
+                          disabled={closingAllToken === s.token}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors
+                            bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20 disabled:opacity-40">
+                          {closingAllToken === s.token
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <X className="w-3.5 h-3.5" />}
+                          Close All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeactivateSession(s.token)}
+                          disabled={deactivatingToken === s.token}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors
+                            bg-white/[0.04] border-white/[0.07] text-white/40 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 disabled:opacity-40">
+                          {deactivatingToken === s.token
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <X className="w-3.5 h-3.5" />}
+                          Deactivate
+                        </button>
+                      </>
+                    )}
+
+                    {s.status !== 'ACTIVE' && isAdmin && (
+                      confirmDeleteSessionToken === s.token ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteSessionToken(null)}
+                            className="px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 text-xs font-medium hover:text-white/70 transition-colors">
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSession(s.token)}
+                            disabled={deletingSessionToken === s.token}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/30 transition-colors disabled:opacity-40">
+                            {deletingSessionToken === s.token ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            Yes, Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteSessionToken(s.token)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
