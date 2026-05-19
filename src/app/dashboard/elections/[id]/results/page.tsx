@@ -49,12 +49,21 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
   const handleDownload = async () => {
     if (!captureRef.current || !election) return
     setDownloading(true)
+    const el = captureRef.current
+
+    const savedWidth    = el.style.width
+    const savedMaxWidth = el.style.maxWidth
+    const savedMargin   = el.style.margin
+
+    el.style.width    = '680px'
+    el.style.maxWidth = '680px'
+    el.style.margin   = '0'
+
+    await new Promise(r => setTimeout(r, 80))
+
     try {
       const domtoimage = await import('dom-to-image-more')
-      const dataUrl = await domtoimage.toPng(captureRef.current, {
-        quality: 1,
-        scale: 2,
-      })
+      const dataUrl = await domtoimage.toPng(el, { quality: 1, scale: 2 })
       const link = document.createElement('a')
       link.download = `${election.title.replace(/\s+/g, '-').toLowerCase()}-results.png`
       link.href = dataUrl
@@ -62,6 +71,9 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
     } catch (err) {
       console.error('Download failed:', err)
     } finally {
+      el.style.width    = savedWidth
+      el.style.maxWidth = savedMaxWidth
+      el.style.margin   = savedMargin
       setDownloading(false)
     }
   }
@@ -237,7 +249,7 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
                 {/* Name + bar */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <p className="text-sm font-bold text-white truncate">{candidate.name}</p>
+                    <p className="text-sm font-bold text-white">{candidate.name}</p>
                     {isWinner && (
                       <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md flex-shrink-0"
                         style={{ background: 'rgba(234,179,8,0.15)', color: '#fbbf24' }}>
