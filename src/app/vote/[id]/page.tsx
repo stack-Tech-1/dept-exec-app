@@ -325,7 +325,7 @@ export default function VotePage({ params }: { params: Promise<{ id: string }> }
                     className="px-4 py-3 rounded-xl bg-emerald-950/40 border border-emerald-500/15">
                     <p className="text-xs text-emerald-400/55">You may now close this page.</p>
                   </motion.div>
-                  <p className="text-[11px] text-white/18">IESA — Department of Computer Science</p>
+                  <p className="text-[11px] text-white/18">IESA — Industrial and Production Engineering</p>
                 </div>
               </div>
             </motion.div>
@@ -486,7 +486,7 @@ export default function VotePage({ params }: { params: Promise<{ id: string }> }
                     </motion.div>
                   )}
 
-                  <p className="text-center text-[11px] text-white/18">IESA — Department of Computer Science</p>
+                  <p className="text-center text-[11px] text-white/18">IESA — Industrial and Production Engineering</p>
                 </div>
               </div>
             </motion.div>

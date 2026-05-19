@@ -134,7 +134,7 @@ function PositionsOverview({
           >
             Submit Votes
           </motion.button>
-          <p className="text-center text-[11px] text-white/20">IESA — Department of Computer Science</p>
+          <p className="text-center text-[11px] text-white/20">IESA — Industrial and Production Engineering</p>
         </div>
       </div>
     </div>
@@ -529,7 +529,7 @@ function SubmitModal({
             </motion.button>
           </div>
 
-          <p className="text-center text-[11px] text-white/20">IESA — Department of Computer Science</p>
+          <p className="text-center text-[11px] text-white/20">IESA — Industrial and Production Engineering</p>
         </div>
       </motion.div>
     </motion.div>
@@ -626,7 +626,7 @@ export default function VotingSessionPage({
                     Please contact the administrator for a new link.
                   </p>
                 </div>
-                <p className="text-[11px] text-white/20">IESA — Department of Computer Science</p>
+                <p className="text-[11px] text-white/20">IESA — Industrial and Production Engineering</p>
               </div>
             </motion.div>
           )}
@@ -652,7 +652,7 @@ export default function VotingSessionPage({
                     Retry
                   </button>
                 </div>
-                <p className="text-[11px] text-white/20">IESA — Department of Computer Science</p>
+                <p className="text-[11px] text-white/20">IESA — Industrial and Production Engineering</p>
               </div>
             </motion.div>
           )}
@@ -724,7 +724,7 @@ export default function VotingSessionPage({
                       <p className="text-xs text-emerald-400/55">You may now close this page.</p>
                     </div>
                   </motion.div>
-                  <p className="text-[11px] text-white/20">IESA — Department of Computer Science</p>
+                  <p className="text-[11px] text-white/20">IESA — Industrial and Production Engineering</p>
                 </div>
               </div>
             </motion.div>
