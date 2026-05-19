@@ -225,12 +225,12 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                     {/* Guest type toggle */}
                     <div>
                       <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-2">
-                        I am a
+                        I am an
                       </label>
                       <div className="flex rounded-xl bg-white/[0.04] border border-white/[0.08] p-1 gap-1">
                         {([
-                          { value: 'NON_STUDENT', label: 'Non-Student' },
-                          { value: 'EXTERNAL_STUDENT', label: 'Allied Dept Student' },
+                          { value: 'NON_STUDENT', label: 'External Student' },
+                          { value: 'EXTERNAL_STUDENT', label: 'Economics Dept Student' },
                         ] as { value: GuestType; label: string }[]).map(opt => (
                           <button
                             key={opt.value}
