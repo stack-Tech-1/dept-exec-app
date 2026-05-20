@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   UsersRound, Plus, Link2, Share2, Check, Trash2, X,
-  AlertTriangle, Loader2, Download, CheckCircle
+  AlertTriangle, Loader2, Download, CheckCircle, Search
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
@@ -196,6 +196,17 @@ function GenerateLinkModal({
   )
 }
 
+/* ─── Pagination helper ──────────────────────────── */
+function getPageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '...')[] = [1]
+  if (current > 3) pages.push('...')
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p)
+  if (current < total - 2) pages.push('...')
+  pages.push(total)
+  return pages
+}
+
 /* ─── Page ───────────────────────────────────────── */
 export default function MembersPage() {
   const [isAdmin, setIsAdmin]               = useState(false)
@@ -210,6 +221,11 @@ export default function MembersPage() {
   const [deletingId, setDeletingId]         = useState<string | null>(null)
   const [deletingMemberId, setDeletingMemberId]         = useState<string | null>(null)
   const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState<string | null>(null)
+  const [totalMembers, setTotalMembers]     = useState(0)
+  const [totalPages, setTotalPages]         = useState(1)
+  const [currentPage, setCurrentPage]       = useState(1)
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
   useEffect(() => {
     const user = authService.getCurrentUser()
@@ -224,18 +240,33 @@ export default function MembersPage() {
   }, [])
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400)
+    return () => clearTimeout(t)
+  }, [searchQuery])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [levelFilter, genderFilter, debouncedSearch])
+
+  useEffect(() => {
     setMembersLoading(true)
     membersService.getMembers({
       level: levelFilter || undefined,
       gender: genderFilter || undefined,
+      search: debouncedSearch || undefined,
+      page: currentPage,
     })
       .then(res => {
-        const list = Array.isArray(res) ? res : (res as any).members ?? []
-        setMembers(list)
+        const data = Array.isArray(res)
+          ? { members: res, total: res.length, pages: 1 }
+          : res as any
+        setMembers(data.members ?? [])
+        setTotalMembers(data.total ?? 0)
+        setTotalPages(data.pages ?? 1)
       })
-      .catch(() => setMembers([]))
+      .catch(() => { setMembers([]); setTotalMembers(0); setTotalPages(1) })
       .finally(() => setMembersLoading(false))
-  }, [levelFilter, genderFilter])
+  }, [levelFilter, genderFilter, debouncedSearch, currentPage])
 
   const handleCopyLink = (token: string, id: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/join/${token}`)
@@ -399,7 +430,7 @@ export default function MembersPage() {
               <h2 className="text-sm font-black text-white/50 tracking-[0.15em] uppercase inline"
                 style={{ fontFamily: 'Syne, sans-serif' }}>Registered Members</h2>
               {!membersLoading && (
-                <span className="text-sm text-white/25 ml-2">— {members.length} total</span>
+                <span className="text-sm text-white/25 ml-2">— {totalMembers} total</span>
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -440,6 +471,25 @@ export default function MembersPage() {
             </div>
           </div>
 
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by name or matric number…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08]
+                text-white/80 text-sm placeholder-white/25 outline-none focus:border-emerald-500/30 transition-all"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
           {/* Table */}
           {membersLoading ? (
             <div className="flex justify-center py-12">
@@ -451,12 +501,13 @@ export default function MembersPage() {
                 <UsersRound className="w-5 h-5 text-white/20" />
               </div>
               <p className="text-white/25 text-sm">
-                {levelFilter || genderFilter ? 'No members match the selected filters' : 'No registered members yet'}
+                {levelFilter || genderFilter || searchQuery ? 'No members match the selected filters' : 'No registered members yet'}
               </p>
             </div>
           ) : (
+            <>
             <div className="overflow-x-auto rounded-2xl border border-white/[0.06]">
-              <table className="min-w-full text-sm">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-white/[0.03] border-b border-white/[0.05]">
                     {['Name', 'Email', 'Matric No.', 'Level', 'Gender', 'Phone', 'Registered At'].map(h => (
@@ -522,6 +573,44 @@ export default function MembersPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-white/[0.05] flex-wrap gap-3">
+                <p className="text-xs text-white/30">
+                  Showing {(currentPage - 1) * 50 + 1}–{Math.min(currentPage * 50, totalMembers)} of {totalMembers}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors
+                      bg-white/[0.04] border-white/[0.07] text-white/50 hover:bg-white/[0.08] hover:text-white
+                      disabled:opacity-30 disabled:cursor-not-allowed">
+                    ← Prev
+                  </button>
+                  {getPageNumbers(currentPage, totalPages).map((p, i) =>
+                    p === '...' ? (
+                      <span key={`e-${i}`} className="px-1 text-white/20 text-xs">…</span>
+                    ) : (
+                      <button key={p} onClick={() => setCurrentPage(p as number)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold border transition-colors ${
+                          p === currentPage
+                            ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                            : 'bg-white/[0.04] border-white/[0.07] text-white/50 hover:bg-white/[0.08]'
+                        }`}>
+                        {p}
+                      </button>
+                    )
+                  )}
+                  <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors
+                      bg-white/[0.04] border-white/[0.07] text-white/50 hover:bg-white/[0.08] hover:text-white
+                      disabled:opacity-30 disabled:cursor-not-allowed">
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>
