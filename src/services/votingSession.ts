@@ -1,9 +1,16 @@
 import API from './api'
 
+export interface SessionElectionRef {
+  _id: string
+  title: string
+  position: string
+  status: 'PENDING' | 'OPEN' | 'CLOSED'
+}
+
 export interface VotingSession {
   token: string
   label: string
-  elections: string[]
+  elections: SessionElectionRef[]
   isActive: boolean
   expiresAt?: string
   status?: 'ACTIVE' | 'EXPIRED' | 'DEACTIVATED'

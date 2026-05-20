@@ -1106,6 +1106,13 @@ export default function ElectionsPage() {
                     )
                   })()}
                   <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                      href={`/dashboard/elections/sessions/${s.token}/results`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors
+                        bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20">
+                      <BarChart2 className="w-3.5 h-3.5" />
+                      Session Results
+                    </Link>
                     <button
                       type="button"
                       onClick={() => handleCopySessionLink(s.token)}
