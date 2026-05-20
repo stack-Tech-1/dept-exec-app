@@ -294,18 +294,21 @@ export default function MembersPage() {
   }
 
   const handleExportCsv = () => {
+    const fmtText = (v: string) => `="${ v.replace(/"/g, '""') }"`
+    const fmtDate = (d: string) =>
+      `"${ new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }"`
     const headers = ['Name', 'Email', 'Matric No.', 'Level', 'Gender', 'Phone', 'Registered At']
     const rows = members.map(m => [
-      m.name,
-      m.email ?? '',
-      m.matricNumber ?? '',
-      m.level,
-      m.gender ?? '',
-      m.phone ?? '',
-      new Date(m.createdAt).toLocaleDateString(),
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      `"${m.name.replace(/"/g, '""')}"`,
+      `"${(m.email ?? '').replace(/"/g, '""')}"`,
+      fmtText(m.matricNumber ?? ''),
+      `"${m.level}L"`,
+      `"${m.gender ?? ''}"`,
+      fmtText(m.phone ?? ''),
+      fmtDate(m.createdAt),
+    ].join(','))
     const csv = [headers.join(','), ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url; a.download = 'members.csv'; a.click()
