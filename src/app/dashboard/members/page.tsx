@@ -208,6 +208,8 @@ export default function MembersPage() {
   const [genderFilter, setGenderFilter]     = useState('')
   const [copiedId, setCopiedId]             = useState<string | null>(null)
   const [deletingId, setDeletingId]         = useState<string | null>(null)
+  const [deletingMemberId, setDeletingMemberId]         = useState<string | null>(null)
+  const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState<string | null>(null)
 
   useEffect(() => {
     const user = authService.getCurrentUser()
@@ -248,6 +250,16 @@ export default function MembersPage() {
       setLinks(prev => prev.filter(l => l._id !== id))
     } catch { /* silent */ }
     finally { setDeletingId(null) }
+  }
+
+  const handleDeleteMember = async (id: string) => {
+    setDeletingMemberId(id)
+    try {
+      await membersService.deleteMember(id)
+      setMembers(prev => prev.filter(m => m._id !== id))
+      setConfirmDeleteMemberId(null)
+    } catch { /* silent — member stays in list */ }
+    finally { setDeletingMemberId(null) }
   }
 
   const handleExportCsv = () => {
@@ -452,6 +464,11 @@ export default function MembersPage() {
                         {h}
                       </th>
                     ))}
+                    {isAdmin && (
+                      <th className="py-3 px-4 text-right text-[10px] font-black text-white/30 tracking-[0.12em] uppercase whitespace-nowrap">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
@@ -476,6 +493,30 @@ export default function MembersPage() {
                       <td className="py-3 px-4 text-white/35 text-xs whitespace-nowrap">
                         {new Date(m.createdAt).toLocaleDateString()}
                       </td>
+                      {isAdmin && (
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          {confirmDeleteMemberId === m._id ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => setConfirmDeleteMemberId(null)}
+                                className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 text-xs font-medium hover:text-white/70 transition-colors">
+                                Cancel
+                              </button>
+                              <button onClick={() => handleDeleteMember(m._id)}
+                                disabled={deletingMemberId === m._id}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/30 transition-colors disabled:opacity-40">
+                                {deletingMemberId === m._id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                Yes
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setConfirmDeleteMemberId(m._id)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-colors">
+                              <Trash2 className="w-3 h-3" />
+                              Delete
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
