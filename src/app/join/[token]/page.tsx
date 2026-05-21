@@ -10,6 +10,22 @@ import Image from 'next/image'
 
 const API_BASE = 'https://api.ipeexecs.page/api'
 
+const MATRIC_RANGES: Record<string, { min: number; max: number }> = {
+  '100': { min: 258411, max: 259091 },
+  '200': { min: 251106, max: 251166 },
+  '300': { min: 244018, max: 244065 },
+  '400': { min: 236849, max: 236898 },
+  '500': { min: 231518, max: 231580 },
+}
+
+function isMatricInRange(matric: string, level: string): boolean {
+  const range = MATRIC_RANGES[level]
+  if (!range) return false
+  const num = parseInt(matric, 10)
+  if (isNaN(num) || String(num) !== matric.trim()) return false
+  return num >= range.min && num <= range.max
+}
+
 type PageState = 'loading' | 'invalid' | 'form' | 'success'
 
 interface LinkInfo {
@@ -182,6 +198,10 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitError('')
+    if (level && matricNumber.trim() && !isMatricInRange(matricNumber.trim(), level)) {
+      setSubmitError('Matric number is not in the valid range for the selected level. Please check your details.')
+      return
+    }
     setSubmitting(true)
     try {
       const res = await fetch(`${API_BASE}/members/register/${token}`, {
@@ -361,7 +381,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                         type="text"
                         value={matricNumber}
                         onChange={e => setMatricNumber(e.target.value)}
-                        placeholder="e.g. 200404/IPE/001"
+                        placeholder="e.g. 244032"
                         className={inputCls}
                         required
                       />

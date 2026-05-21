@@ -41,7 +41,7 @@ export interface RegistrationLink {
 }
 
 class MembersService {
-  async getMembers(params?: { level?: string; gender?: string; search?: string; duesPaid?: boolean; session?: string; page?: number }): Promise<{ members: Member[]; total: number; pages: number }> {
+  async getMembers(params?: { level?: string; gender?: string; search?: string; duesPaid?: boolean; session?: string; page?: number; limit?: number }): Promise<{ members: Member[]; total: number; pages: number }> {
     return API.get('/members', { params }) as any;
   }
 

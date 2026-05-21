@@ -11,6 +11,24 @@ import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 import { membersService, type Member, type RegistrationLink } from '@/services/members'
 
+/* ─── Matric range validation ────────────────────── */
+const MATRIC_RANGES: Record<string, { min: number; max: number }> = {
+  '100': { min: 258411, max: 259091 },
+  '200': { min: 251106, max: 251166 },
+  '300': { min: 244018, max: 244065 },
+  '400': { min: 236849, max: 236898 },
+  '500': { min: 231518, max: 231580 },
+}
+
+function isMatricFlagged(matric: string | undefined, level: string): boolean {
+  if (!matric) return false
+  const range = MATRIC_RANGES[level]
+  if (!range) return false
+  const num = parseInt(matric, 10)
+  if (isNaN(num)) return false
+  return num < range.min || num > range.max
+}
+
 /* ─── Level badge ────────────────────────────────── */
 const LEVEL_COLORS: Record<string, string> = {
   '100': '#60a5fa',
@@ -435,6 +453,7 @@ export default function MembersPage() {
   const [editingMember, setEditingMember]   = useState<Member | null>(null)
   const [sendingCodeId, setSendingCodeId]   = useState<string | null>(null)
   const [codeSentId, setCodeSentId]         = useState<string | null>(null)
+  const [flaggedOnly, setFlaggedOnly]       = useState(false)
 
   useEffect(() => {
     const user = authService.getCurrentUser()
@@ -455,16 +474,19 @@ export default function MembersPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [levelFilter, genderFilter, debouncedSearch])
+  }, [levelFilter, genderFilter, debouncedSearch, flaggedOnly])
 
   useEffect(() => {
     setMembersLoading(true)
-    membersService.getMembers({
-      level: levelFilter || undefined,
-      gender: genderFilter || undefined,
-      search: debouncedSearch || undefined,
-      page: currentPage,
-    })
+    const params = flaggedOnly
+      ? { limit: 1000 }
+      : {
+          level: levelFilter || undefined,
+          gender: genderFilter || undefined,
+          search: debouncedSearch || undefined,
+          page: currentPage,
+        }
+    membersService.getMembers(params)
       .then(res => {
         const data = Array.isArray(res)
           ? { members: res, total: res.length, pages: 1 }
@@ -475,7 +497,11 @@ export default function MembersPage() {
       })
       .catch(() => { setMembers([]); setTotalMembers(0); setTotalPages(1) })
       .finally(() => setMembersLoading(false))
-  }, [levelFilter, genderFilter, debouncedSearch, currentPage])
+  }, [levelFilter, genderFilter, debouncedSearch, currentPage, flaggedOnly])
+
+  const displayedMembers = flaggedOnly
+    ? members.filter(m => isMatricFlagged(m.matricNumber, m.level))
+    : members
 
   const handleCopyLink = (token: string, id: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/join/${token}`)
@@ -685,6 +711,19 @@ export default function MembersPage() {
                 <option value="Other">Other</option>
               </select>
 
+              {/* Flagged filter */}
+              <button
+                type="button"
+                onClick={() => { setFlaggedOnly(f => !f); setLevelFilter(''); setGenderFilter('') }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-colors ${
+                  flaggedOnly
+                    ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
+                    : 'bg-white/[0.04] border-white/[0.07] text-white/40 hover:bg-amber-500/10 hover:border-amber-500/20 hover:text-amber-400'
+                }`}>
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Flagged
+              </button>
+
               {/* Export CSV */}
               <button
                 type="button"
@@ -722,13 +761,15 @@ export default function MembersPage() {
             <div className="flex justify-center py-12">
               <div className="w-6 h-6 rounded-full border-2 border-[#0d7c3d]/20 border-t-[#0d7c3d] animate-spin" />
             </div>
-          ) : members.length === 0 ? (
+          ) : displayedMembers.length === 0 ? (
             <div className="py-12 text-center rounded-2xl bg-white/[0.02] border border-white/[0.04]">
               <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-3">
                 <UsersRound className="w-5 h-5 text-white/20" />
               </div>
               <p className="text-white/25 text-sm">
-                {levelFilter || genderFilter || searchQuery ? 'No members match the selected filters' : 'No registered members yet'}
+                {flaggedOnly ? 'No flagged members found — all matric numbers are within valid ranges'
+                  : levelFilter || genderFilter || searchQuery ? 'No members match the selected filters'
+                  : 'No registered members yet'}
               </p>
             </div>
           ) : (
@@ -750,14 +791,22 @@ export default function MembersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
-                  {members.map(m => (
+                  {displayedMembers.map(m => (
                     <tr key={m._id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3 px-4 text-white/80 font-medium whitespace-nowrap">{m.name}</td>
                       <td className="py-3 px-4 text-white/45 font-mono text-xs whitespace-nowrap">
                         {m.email ?? <span className="text-white/20">—</span>}
                       </td>
                       <td className="py-3 px-4 text-white/60 font-mono text-xs whitespace-nowrap">
-                        {m.matricNumber ?? <span className="text-white/20">—</span>}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{m.matricNumber ?? <span className="text-white/20">—</span>}</span>
+                          {isMatricFlagged(m.matricNumber, m.level) && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold
+                              bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Out of range
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <LevelBadge level={m.level} />
