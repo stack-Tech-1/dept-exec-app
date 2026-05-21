@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, use } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download, Users, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { electionsService, type Election, type Candidate } from '@/services/elections'
-import { votingSessionService, getSessionStatus, type VotingSession } from '@/services/votingSession'
+import { votingSessionService, getSessionStatus, type VotingSession, type SessionVoter } from '@/services/votingSession'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 
@@ -217,6 +217,11 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
   const [error, setError] = useState<string | null>(null)
   const [partialError, setPartialError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const [viewMode, setViewMode]           = useState<'results' | 'voters'>('results')
+  const [voters, setVoters]               = useState<SessionVoter[]>([])
+  const [votersLoading, setVotersLoading] = useState(false)
+  const [revokingMatric, setRevokingMatric]         = useState<string | null>(null)
+  const [confirmRevokeMatric, setConfirmRevokeMatric] = useState<string | null>(null)
   const captureRef = useRef<HTMLDivElement>(null)
   const currentUser = authService.getCurrentUser()
   const isAdmin = currentUser?.role === ROLES.ADMIN
@@ -250,6 +255,31 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
     }
     load()
   }, [token])
+
+  const loadVoters = async () => {
+    setVotersLoading(true)
+    try {
+      const data = await votingSessionService.getSessionVoters(token)
+      setVoters(data)
+    } catch { /* silent */ }
+    finally { setVotersLoading(false) }
+  }
+
+  const handleRevoke = async (matric: string) => {
+    setRevokingMatric(matric)
+    try {
+      await votingSessionService.revokeVote(token, matric)
+      setVoters(prev => prev.filter(v => v.identifier !== matric))
+      const ids = session!.elections.map(e => e._id)
+      const refreshed = await Promise.allSettled(ids.map(id => electionsService.getElectionById(id)))
+      setElections(
+        refreshed
+          .filter((r): r is PromiseFulfilledResult<Election> => r.status === 'fulfilled')
+          .map(r => r.value)
+      )
+    } catch { /* silent */ }
+    finally { setRevokingMatric(null); setConfirmRevokeMatric(null) }
+  }
 
   const handleDownload = async () => {
     if (!captureRef.current || !session) return
@@ -342,8 +372,106 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
         </div>
       )}
 
+      {/* View tabs */}
+      <div className="max-w-3xl mx-auto flex items-center gap-1.5 mb-4">
+        <button type="button" onClick={() => setViewMode('results')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            viewMode === 'results'
+              ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
+              : 'bg-white/[0.04] border border-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.06]'
+          }`}>
+          Results
+        </button>
+        {isAdmin && (
+          <button type="button"
+            onClick={() => { setViewMode('voters'); if (voters.length === 0) loadVoters() }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              viewMode === 'voters'
+                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-400'
+                : 'bg-white/[0.04] border border-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.06]'
+            }`}>
+            <Users className="w-3.5 h-3.5" />
+            Voters{voters.length > 0 ? ` (${voters.length})` : ''}
+          </button>
+        )}
+      </div>
+
+      {/* Voters view */}
+      {viewMode === 'voters' && (
+        <div className="max-w-3xl mx-auto rounded-2xl border border-white/[0.06] overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.02)' }}>
+          {votersLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 rounded-full border-2 border-purple-500/20 border-t-purple-500 animate-spin" />
+            </div>
+          ) : voters.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-3">
+                <Users className="w-5 h-5 text-white/20" />
+              </div>
+              <p className="text-white/25 text-sm">No votes have been cast in this session yet.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-white/[0.03] border-b border-white/[0.05]">
+                    {['#', 'Name', 'Matric No.', 'Voted At', 'Actions'].map(h => (
+                      <th key={h} className="py-3 px-4 text-left text-[10px] font-black text-white/30 tracking-[0.12em] uppercase whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {voters.map((v, idx) => (
+                    <tr key={v.identifier} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3 px-4 text-white/25 text-xs">{idx + 1}</td>
+                      <td className="py-3 px-4 text-white/80 font-medium whitespace-nowrap">
+                        {v.name ?? <span className="text-white/25 italic">Unknown</span>}
+                      </td>
+                      <td className="py-3 px-4 text-white/55 font-mono text-xs whitespace-nowrap">{v.identifier}</td>
+                      <td className="py-3 px-4 text-white/35 text-xs whitespace-nowrap">
+                        {v.votedAt ? new Date(v.votedAt).toLocaleString() : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        {confirmRevokeMatric === v.identifier ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button type="button"
+                              onClick={() => setConfirmRevokeMatric(null)}
+                              className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 text-xs font-medium hover:text-white/70 transition-colors">
+                              Cancel
+                            </button>
+                            <button type="button"
+                              onClick={() => handleRevoke(v.identifier)}
+                              disabled={revokingMatric === v.identifier}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/30 transition-colors disabled:opacity-40">
+                              {revokingMatric === v.identifier
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Trash2 className="w-3 h-3" />}
+                              Yes, Revoke
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button"
+                            onClick={() => setConfirmRevokeMatric(v.identifier)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-colors">
+                            <AlertTriangle className="w-3 h-3" />
+                            Revoke
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Capture zone */}
-      <div ref={captureRef} className="max-w-3xl mx-auto rounded-3xl overflow-hidden"
+      {viewMode === 'results' && <div ref={captureRef} className="max-w-3xl mx-auto rounded-3xl overflow-hidden"
         style={{
           background: 'linear-gradient(160deg, #061510 0%, #030a05 60%, #040d07 100%)',
           border: '1px solid rgba(255,255,255,0.07)',
@@ -412,7 +540,7 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
         </div>
 
         <div className="h-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(13,124,61,0.25), transparent)' }} />
-      </div>
+      </div>}
     </div>
   )
 }

@@ -19,6 +19,12 @@ export interface VotingSession {
   createdBy?: { name: string }
 }
 
+export interface SessionVoter {
+  identifier: string
+  name: string | null
+  votedAt: string
+}
+
 export function getSessionStatus(s: VotingSession): 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'DEACTIVATED' {
   if (!s.isActive) return 'DEACTIVATED'
   if (s.expiresAt && new Date(s.expiresAt) < new Date()) return 'EXPIRED'
@@ -41,6 +47,14 @@ class VotingSessionService {
 
   async closeSessionElections(token: string): Promise<{ message: string }> {
     return API.patch(`/voting-sessions/${token}/close-all`, {}) as any
+  }
+
+  async getSessionVoters(token: string): Promise<SessionVoter[]> {
+    return API.get(`/voting-sessions/${token}/voters`) as any
+  }
+
+  async revokeVote(token: string, matricNumber: string): Promise<{ message: string }> {
+    return API.delete(`/voting-sessions/${token}/votes/${encodeURIComponent(matricNumber)}`) as any
   }
 
   async pauseSession(token: string): Promise<{ message: string; isPaused: boolean }> {
