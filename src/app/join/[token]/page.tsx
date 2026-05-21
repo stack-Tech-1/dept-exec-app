@@ -12,7 +12,7 @@ const API_BASE = 'https://api.ipeexecs.page/api'
 
 const MATRIC_RANGES: Record<string, { min: number; max: number }> = {
   '100': { min: 258409, max: 258452 },
-  '200': { min: 244043, max: 251166 },
+  '200': { min: 251111, max: 251164 },
   '300': { min: 244018, max: 244080 },
   '400': { min: 236849, max: 236898 },
   '500': { min: 231518, max: 231580 },
