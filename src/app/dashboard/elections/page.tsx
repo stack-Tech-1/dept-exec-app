@@ -773,7 +773,7 @@ function ElectionCard({
                 {copiedLink ? 'Copied!' : 'Share Voting Link'}
               </button>
 
-              {election.status === 'CLOSED' && (
+              {election.status !== 'PENDING' && (
                 <Link href={`/dashboard/elections/${election._id}/results`}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/25
                     text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition-colors">
