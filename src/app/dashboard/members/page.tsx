@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   UsersRound, Plus, Link2, Share2, Check, Trash2, X,
-  AlertTriangle, Loader2, Download, CheckCircle, Search
+  AlertTriangle, Loader2, Download, CheckCircle, Search, Pencil
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
@@ -196,6 +196,212 @@ function GenerateLinkModal({
   )
 }
 
+/* ─── Edit Member Modal ──────────────────────────── */
+function EditMemberModal({
+  member,
+  onClose,
+  onSaved,
+}: {
+  member: Member
+  onClose: () => void
+  onSaved: (updated: Member) => void
+}) {
+  const [form, setForm] = useState({
+    name:          member.name ?? '',
+    email:         member.email ?? '',
+    phone:         member.phone ?? '',
+    matricNumber:  member.matricNumber ?? '',
+    level:         member.level ?? '500',
+    gender:        member.gender ?? '',
+    stateOfOrigin: (member as any).stateOfOrigin ?? '',
+    notes:         (member as any).notes ?? '',
+    isActive:      member.isActive !== false,
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError]           = useState('')
+
+  const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { setError('Name is required.'); return }
+    setSubmitting(true); setError('')
+    try {
+      const updated = await membersService.updateMember(member._id, {
+        name:          form.name.trim(),
+        email:         form.email.trim() || undefined,
+        phone:         form.phone.trim() || undefined,
+        matricNumber:  form.matricNumber.trim() || undefined,
+        level:         form.level as Member['level'],
+        gender:        (form.gender || undefined) as Member['gender'],
+        stateOfOrigin: form.stateOfOrigin.trim() || undefined,
+        notes:         form.notes.trim() || undefined,
+        isActive:      form.isActive,
+      } as Partial<Member>)
+      onSaved(updated)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save changes.')
+    } finally { setSubmitting(false) }
+  }
+
+  const inputCls = `w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08]
+    text-white text-sm placeholder:text-white/20 outline-none
+    focus:border-emerald-500/40 focus:bg-white/[0.08] transition-all`
+
+  const selectCls = `w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08]
+    text-white/80 text-sm outline-none focus:border-emerald-500/40 transition-all`
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <motion.div
+        initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        className="relative z-10 w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#071a0f] max-h-[90vh] flex flex-col"
+        style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.7)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4">
+          <div>
+            <h2 className="text-lg font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+              Edit Member
+            </h2>
+            <p className="text-white/35 text-xs mt-0.5">{member.name}</p>
+          </div>
+          <button type="button" onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/40 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-6 pb-2 space-y-4 flex-1">
+          {/* Row: Name + Matric */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                Name<span className="text-emerald-400 ml-0.5">*</span>
+              </label>
+              <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
+                placeholder="Full name" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                Matric No.
+              </label>
+              <input type="text" value={form.matricNumber} onChange={e => set('matricNumber', e.target.value)}
+                placeholder="e.g. 231501" className={inputCls} />
+            </div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+              Email
+            </label>
+            <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
+              placeholder="email@example.com" className={inputCls} />
+          </div>
+
+          {/* Row: Phone + Level */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                Phone
+              </label>
+              <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
+                placeholder="08XXXXXXXXX" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                Level
+              </label>
+              <select value={form.level} onChange={e => set('level', e.target.value)} className={selectCls}>
+                {['100','200','300','400','500','Postgraduate'].map(l => (
+                  <option key={l} value={l}>{l === 'Postgraduate' ? 'Postgraduate' : `${l}L`}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row: Gender + State of Origin */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                Gender
+              </label>
+              <select value={form.gender} onChange={e => set('gender', e.target.value)} className={selectCls}>
+                <option value="">— Not specified —</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+                State of Origin
+              </label>
+              <input type="text" value={form.stateOfOrigin} onChange={e => set('stateOfOrigin', e.target.value)}
+                placeholder="e.g. Lagos" className={inputCls} />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-1.5">
+              Notes
+            </label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
+              placeholder="Optional notes about this member…" rows={2} maxLength={500}
+              className={`${inputCls} resize-none`} />
+          </div>
+
+          {/* Active toggle */}
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <p className="text-sm font-medium text-white/70">Active Member</p>
+              <p className="text-xs text-white/30">Inactive members cannot vote in elections</p>
+            </div>
+            <button type="button" onClick={() => set('isActive', !form.isActive)}
+              className={`relative w-10 h-5.5 rounded-full transition-colors ${form.isActive ? 'bg-emerald-500' : 'bg-white/[0.12]'}`}
+              style={{ height: '1.375rem', width: '2.5rem' }}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <p className="text-rose-300 text-sm">{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 flex gap-3 border-t border-white/[0.05]">
+          <button type="button" onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-white/50 text-sm font-medium hover:bg-white/[0.04] transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={handleSave} disabled={submitting}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl
+              bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white text-sm font-bold
+              disabled:opacity-40 transition-all shadow-[0_4px_16px_rgba(13,124,61,0.4)]">
+            {submitting
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+              : <><Check className="w-4 h-4" /> Save Changes</>
+            }
+          </button>
+        </div>
+      </motion.div>
+    </div>,
+    document.body
+  )
+}
+
 /* ─── Pagination helper ──────────────────────────── */
 function getPageNumbers(current: number, total: number): (number | '...')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
@@ -226,6 +432,7 @@ export default function MembersPage() {
   const [currentPage, setCurrentPage]       = useState(1)
   const [searchQuery, setSearchQuery]       = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [editingMember, setEditingMember]   = useState<Member | null>(null)
 
   useEffect(() => {
     const user = authService.getCurrentUser()
@@ -291,6 +498,11 @@ export default function MembersPage() {
       setConfirmDeleteMemberId(null)
     } catch { /* silent — member stays in list */ }
     finally { setDeletingMemberId(null) }
+  }
+
+  const handleEditSaved = (updated: Member) => {
+    setMembers(prev => prev.map(m => m._id === updated._id ? updated : m))
+    setEditingMember(null)
   }
 
   const handleExportCsv = () => {
@@ -563,11 +775,18 @@ export default function MembersPage() {
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => setConfirmDeleteMemberId(m._id)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-colors">
-                              <Trash2 className="w-3 h-3" />
-                              Delete
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => setEditingMember(m)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-blue-500/10 hover:border-blue-500/20 hover:text-blue-400 transition-colors">
+                                <Pencil className="w-3 h-3" />
+                                Edit
+                              </button>
+                              <button onClick={() => setConfirmDeleteMemberId(m._id)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-colors">
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </div>
                           )}
                         </td>
                       )}
@@ -626,6 +845,13 @@ export default function MembersPage() {
               setLinks(prev => [link, ...prev])
               setShowGenerate(false)
             }}
+          />
+        )}
+        {editingMember && (
+          <EditMemberModal
+            member={editingMember}
+            onClose={() => setEditingMember(null)}
+            onSaved={handleEditSaved}
           />
         )}
       </AnimatePresence>
