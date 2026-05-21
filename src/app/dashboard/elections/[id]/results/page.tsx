@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, use } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Download } from 'lucide-react'
 import Link from 'next/link'
-import { electionsService, type Election, type Candidate, type VoterBreakdown } from '@/services/elections'
+import { electionsService, type Election, type Candidate, type VoterBreakdown, type AllVoter } from '@/services/elections'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 
@@ -122,16 +122,17 @@ function VoterBreakdownView({ breakdown }: { breakdown: VoterBreakdown }) {
 }
 
 function AllVotersView({ breakdown }: { breakdown: VoterBreakdown }) {
-  const allVoters = breakdown.candidates
-    .flatMap(c => c.voters.map(v => ({ ...v, votedFor: c.name })))
-    .sort((a, b) => new Date(a.votedAt).getTime() - new Date(b.votedAt).getTime())
+  const allVoters: AllVoter[] = breakdown.allVoters ??
+    breakdown.candidates.flatMap(c =>
+      c.voters.map(v => ({ matricNumber: v.matricNumber, name: v.name, votedAt: v.votedAt }))
+    )
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <div className="flex items-center justify-between mb-2">
         <div>
           <h2 className="text-lg font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>{breakdown.title}</h2>
-          <p className="text-xs text-white/30 mt-0.5">{breakdown.totalVotes} member{breakdown.totalVotes !== 1 ? 's' : ''} voted · {breakdown.session}</p>
+          <p className="text-xs text-white/30 mt-0.5">{allVoters.length} member{allVoters.length !== 1 ? 's' : ''} voted · {breakdown.session}</p>
         </div>
         <span className="text-[10px] font-black tracking-[0.15em] uppercase px-2.5 py-1 rounded-full"
           style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
@@ -148,7 +149,7 @@ function AllVotersView({ breakdown }: { breakdown: VoterBreakdown }) {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                {['#', 'Name', 'Matric No.', 'Voted For', 'Time'].map(h => (
+                {['#', 'Name', 'Matric No.', 'Time'].map(h => (
                   <th key={h} className="py-3 px-4 text-left text-[10px] font-black text-white/30 tracking-[0.12em] uppercase whitespace-nowrap">
                     {h}
                   </th>
@@ -161,9 +162,11 @@ function AllVotersView({ breakdown }: { breakdown: VoterBreakdown }) {
                   <td className="py-3 px-4 text-white/25 text-xs font-mono">{i + 1}</td>
                   <td className="py-3 px-4 text-white/80 font-medium whitespace-nowrap">{voter.name}</td>
                   <td className="py-3 px-4 text-white/45 font-mono text-xs whitespace-nowrap">{voter.matricNumber}</td>
-                  <td className="py-3 px-4 text-white/60 text-xs whitespace-nowrap">{voter.votedFor}</td>
                   <td className="py-3 px-4 text-white/30 text-xs whitespace-nowrap">
-                    {new Date(voter.votedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    {voter.votedAt
+                      ? new Date(voter.votedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                      : <span className="text-white/15">—</span>
+                    }
                   </td>
                 </tr>
               ))}

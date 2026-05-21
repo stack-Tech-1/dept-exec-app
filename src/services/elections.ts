@@ -40,6 +40,12 @@ export interface BreakdownCandidate {
   voters: BreakdownVoter[];
 }
 
+export interface AllVoter {
+  matricNumber: string;
+  name: string;
+  votedAt: string | null;
+}
+
 export interface VoterBreakdown {
   electionId: string;
   title: string;
@@ -47,6 +53,7 @@ export interface VoterBreakdown {
   session: string;
   totalVotes: number;
   candidates: BreakdownCandidate[];
+  allVoters?: AllVoter[];
 }
 
 class ElectionsService {
