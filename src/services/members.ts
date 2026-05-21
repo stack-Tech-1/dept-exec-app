@@ -65,6 +65,10 @@ class MembersService {
     return API.post(`/members/${id}/dues`, data) as any;
   }
 
+  async sendVoteCode(id: string): Promise<{ message: string }> {
+    return API.post(`/members/${id}/send-vote-code`) as any;
+  }
+
   async bulkImport(members: Partial<Member>[]): Promise<{ message: string; count: number }> {
     return API.post('/members/bulk-import', { members }) as any;
   }

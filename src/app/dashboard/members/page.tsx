@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   UsersRound, Plus, Link2, Share2, Check, Trash2, X,
-  AlertTriangle, Loader2, Download, CheckCircle, Search, Pencil
+  AlertTriangle, Loader2, Download, CheckCircle, Search, Pencil, Mail
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
@@ -433,6 +433,8 @@ export default function MembersPage() {
   const [searchQuery, setSearchQuery]       = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [editingMember, setEditingMember]   = useState<Member | null>(null)
+  const [sendingCodeId, setSendingCodeId]   = useState<string | null>(null)
+  const [codeSentId, setCodeSentId]         = useState<string | null>(null)
 
   useEffect(() => {
     const user = authService.getCurrentUser()
@@ -503,6 +505,16 @@ export default function MembersPage() {
   const handleEditSaved = (updated: Member) => {
     setMembers(prev => prev.map(m => m._id === updated._id ? updated : m))
     setEditingMember(null)
+  }
+
+  const handleSendCode = async (member: Member) => {
+    setSendingCodeId(member._id)
+    try {
+      await membersService.sendVoteCode(member._id)
+      setCodeSentId(member._id)
+      setTimeout(() => setCodeSentId(null), 3000)
+    } catch { /* silent */ }
+    finally { setSendingCodeId(null) }
   }
 
   const handleExportCsv = () => {
@@ -776,6 +788,21 @@ export default function MembersPage() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => handleSendCode(m)}
+                                disabled={sendingCodeId === m._id}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors disabled:opacity-40 ${
+                                  codeSentId === m._id
+                                    ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
+                                    : 'bg-white/[0.03] border-white/[0.06] text-white/25 hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-400'
+                                }`}>
+                                {sendingCodeId === m._id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : codeSentId === m._id
+                                  ? <Check className="w-3 h-3" />
+                                  : <Mail className="w-3 h-3" />
+                                }
+                                {codeSentId === m._id ? 'Sent!' : 'Send Code'}
+                              </button>
                               <button onClick={() => setEditingMember(m)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-blue-500/10 hover:border-blue-500/20 hover:text-blue-400 transition-colors">
                                 <Pencil className="w-3 h-3" />

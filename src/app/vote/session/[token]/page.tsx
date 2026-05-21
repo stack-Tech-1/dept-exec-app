@@ -272,12 +272,14 @@ function SubmitModal({
   onSuccess: () => void
 }) {
   const [matric, setMatric] = useState('')
+  const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   const handleSubmit = async () => {
     const trimmed = matric.trim().toUpperCase()
     if (!trimmed) { setError('Please enter your matric number.'); return }
+    if (code.trim().length !== 6) { setError('Please enter the 6-digit code from your email.'); return }
 
     setSubmitting(true)
     setError('')
@@ -287,6 +289,7 @@ function SubmitModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           identifier: trimmed,
+          code: code.trim(),
           votes: Object.entries(votes)
             .filter(([, v]) => v && v !== 'ABSTAIN')
             .map(([electionId, candidateId]) => ({ electionId, candidateId })),
@@ -397,6 +400,25 @@ function SubmitModal({
             />
           </div>
 
+          {/* Vote code input */}
+          <div>
+            <label className="block text-[11px] font-bold text-white/40 tracking-[0.12em] uppercase mb-2">
+              Vote Code <span className="normal-case font-normal text-white/25">(from your email)</span>
+            </label>
+            <input
+              type="text"
+              value={code}
+              onChange={e => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError('') }}
+              placeholder="000000"
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              className="w-full px-4 py-4 rounded-xl bg-white/[0.06] border border-white/[0.10]
+                text-white text-2xl font-mono text-center tracking-[0.4em] placeholder:text-white/15
+                outline-none focus:border-emerald-500/50 focus:bg-white/[0.08] transition-all"
+            />
+          </div>
+
           {/* Error */}
           <AnimatePresence>
             {error && (
@@ -423,7 +445,7 @@ function SubmitModal({
             <motion.button
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              disabled={submitting || !matric.trim()}
+              disabled={submitting || !matric.trim() || code.trim().length !== 6}
               onClick={handleSubmit}
               className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white font-black text-base disabled:opacity-40 transition-all shadow-[0_8px_24px_rgba(13,124,61,0.4)]"
             >
