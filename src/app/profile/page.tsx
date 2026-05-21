@@ -17,6 +17,7 @@ export default function ProfilePage() {
       setUser(currentUser)
     }
   }, [router])
+  
 
   if (!user) {
     return (
