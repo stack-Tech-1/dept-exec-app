@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   CheckCircle, XCircle, AlertTriangle, Vote,
   Loader2, ChevronLeft,
