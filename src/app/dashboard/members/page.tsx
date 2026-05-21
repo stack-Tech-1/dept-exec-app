@@ -15,7 +15,7 @@ import { membersService, type Member, type RegistrationLink } from '@/services/m
 const MATRIC_RANGES: Record<string, { min: number; max: number }> = {
   '100': { min: 258411, max: 259091 },
   '200': { min: 251106, max: 251166 },
-  '300': { min: 244018, max: 244065 },
+  '300': { min: 244018, max: 244080 },
   '400': { min: 236849, max: 236898 },
   '500': { min: 231518, max: 231580 },
 }
