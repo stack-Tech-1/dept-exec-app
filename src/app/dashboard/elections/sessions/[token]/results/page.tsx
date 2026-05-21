@@ -219,6 +219,41 @@ function ElectionResultSection({ election, index }: { election: Election; index:
   )
 }
 
+const COLOR_PROPS = [
+  'color', 'background-color',
+  'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+  'outline-color', 'text-decoration-color',
+]
+
+function normalizeOklabColors(root: HTMLElement) {
+  const tempCanvas = document.createElement('canvas')
+  const ctx = tempCanvas.getContext('2d')!
+  const saved: Array<{ el: HTMLElement; prop: string; prev: string }> = []
+
+  const walk = (el: HTMLElement) => {
+    const cs = window.getComputedStyle(el)
+    for (const prop of COLOR_PROPS) {
+      const val = cs.getPropertyValue(prop)
+      if (!val || (!val.includes('oklab') && !val.includes('oklch') && !val.includes('color('))) continue
+      ctx.fillStyle = val
+      const rgb = ctx.fillStyle
+      saved.push({ el, prop, prev: el.style.getPropertyValue(prop) })
+      el.style.setProperty(prop, rgb, 'important')
+    }
+    for (const child of el.children) walk(child as HTMLElement)
+  }
+
+  walk(root)
+  return saved
+}
+
+function restoreColors(saved: Array<{ el: HTMLElement; prop: string; prev: string }>) {
+  for (const { el, prop, prev } of saved) {
+    if (prev) el.style.setProperty(prop, prev)
+    else el.style.removeProperty(prop)
+  }
+}
+
 export default function SessionResultsPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
   const [session, setSession] = useState<VotingSession | null>(null)
@@ -313,6 +348,8 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
 
     await new Promise(r => setTimeout(r, 300))
 
+    const colorOverrides = normalizeOklabColors(el)
+
     try {
       const html2canvas = (await import('html2canvas')).default
       const canvas = await html2canvas(el, {
@@ -329,6 +366,7 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
     } catch (err) {
       console.error('Download failed:', err)
     } finally {
+      restoreColors(colorOverrides)
       styleTag.remove()
       el.style.width    = savedWidth
       el.style.maxWidth = savedMaxWidth
