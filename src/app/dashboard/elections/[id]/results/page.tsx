@@ -132,7 +132,7 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
   const captureRef = useRef<HTMLDivElement>(null)
   const currentUser = authService.getCurrentUser()
   const isAdmin = currentUser?.role === ROLES.ADMIN
-  const canViewBreakdown = isAdmin || currentUser?.position === 'Electoral Chairman'
+  const canViewBreakdown = isAdmin
 
   useEffect(() => {
     electionsService.getElectionById(id)
