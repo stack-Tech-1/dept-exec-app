@@ -40,6 +40,12 @@ function StatusBadge({ status }: { status: Election['status'] }) {
       OPEN
     </span>
   )
+  if (status === 'PAUSED') return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-400">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+      PAUSED
+    </span>
+  )
   if (status === 'CLOSED') return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-400">
       CLOSED
@@ -756,12 +762,36 @@ function ElectionCard({
                 </>
               )}
               {election.status === 'OPEN' && (
-                <button type="button" onClick={() => handleStatusChange('CLOSED')} disabled={statusLoading}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30
-                    text-blue-400 text-xs font-bold hover:bg-blue-500/30 transition-colors disabled:opacity-40">
-                  {statusLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                  Close Voting
-                </button>
+                <>
+                  <button type="button" onClick={() => handleStatusChange('PAUSED')} disabled={statusLoading}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/20 border border-amber-500/30
+                      text-amber-400 text-xs font-bold hover:bg-amber-500/30 transition-colors disabled:opacity-40">
+                    {statusLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="text-[10px]">⏸</span>}
+                    Pause
+                  </button>
+                  <button type="button" onClick={() => handleStatusChange('CLOSED')} disabled={statusLoading}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30
+                      text-blue-400 text-xs font-bold hover:bg-blue-500/30 transition-colors disabled:opacity-40">
+                    {statusLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                    Close Voting
+                  </button>
+                </>
+              )}
+              {election.status === 'PAUSED' && (
+                <>
+                  <button type="button" onClick={() => handleStatusChange('OPEN')} disabled={statusLoading}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30
+                      text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 transition-colors disabled:opacity-40">
+                    {statusLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="text-[10px]">▶</span>}
+                    Resume
+                  </button>
+                  <button type="button" onClick={() => handleStatusChange('CLOSED')} disabled={statusLoading}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30
+                      text-blue-400 text-xs font-bold hover:bg-blue-500/30 transition-colors disabled:opacity-40">
+                    {statusLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                    Close Voting
+                  </button>
+                </>
               )}
               <button type="button" onClick={handleShareLink}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors
@@ -828,7 +858,7 @@ function ElectionCard({
 export default function ElectionsPage() {
   const [elections, setElections] = useState<Election[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'OPEN' | 'CLOSED'>('ALL')
+  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'OPEN' | 'PAUSED' | 'CLOSED'>('ALL')
   const [showCreate, setShowCreate] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [fetchError, setFetchError] = useState('')
@@ -957,7 +987,7 @@ export default function ElectionsPage() {
     { label: 'Total Votes Cast', value: countVotes, icon: BarChart2, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
   ]
 
-  const tabs: Array<typeof filter> = ['ALL', 'PENDING', 'OPEN', 'CLOSED']
+  const tabs: Array<typeof filter> = ['ALL', 'PENDING', 'OPEN', 'PAUSED', 'CLOSED']
 
   return (
     <>

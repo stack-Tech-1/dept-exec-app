@@ -15,7 +15,7 @@ export interface Election {
   position: string;
   session: string;
   description?: string;
-  status: 'PENDING' | 'OPEN' | 'CLOSED';
+  status: 'PENDING' | 'OPEN' | 'PAUSED' | 'CLOSED';
   candidates: Candidate[];
   totalVotes: number;
   undecidedCount?: number;

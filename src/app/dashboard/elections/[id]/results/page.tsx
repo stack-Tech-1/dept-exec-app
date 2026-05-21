@@ -121,12 +121,66 @@ function VoterBreakdownView({ breakdown }: { breakdown: VoterBreakdown }) {
   )
 }
 
+function AllVotersView({ breakdown }: { breakdown: VoterBreakdown }) {
+  const allVoters = breakdown.candidates
+    .flatMap(c => c.voters.map(v => ({ ...v, votedFor: c.name })))
+    .sort((a, b) => new Date(a.votedAt).getTime() - new Date(b.votedAt).getTime())
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h2 className="text-lg font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>{breakdown.title}</h2>
+          <p className="text-xs text-white/30 mt-0.5">{breakdown.totalVotes} member{breakdown.totalVotes !== 1 ? 's' : ''} voted · {breakdown.session}</p>
+        </div>
+        <span className="text-[10px] font-black tracking-[0.15em] uppercase px-2.5 py-1 rounded-full"
+          style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
+          Confidential
+        </span>
+      </div>
+
+      {allVoters.length === 0 ? (
+        <div className="py-16 text-center rounded-2xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <p className="text-white/25 text-sm">No votes have been cast yet.</p>
+        </div>
+      ) : (
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                {['#', 'Name', 'Matric No.', 'Voted For', 'Time'].map(h => (
+                  <th key={h} className="py-3 px-4 text-left text-[10px] font-black text-white/30 tracking-[0.12em] uppercase whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allVoters.map((voter, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                  <td className="py-3 px-4 text-white/25 text-xs font-mono">{i + 1}</td>
+                  <td className="py-3 px-4 text-white/80 font-medium whitespace-nowrap">{voter.name}</td>
+                  <td className="py-3 px-4 text-white/45 font-mono text-xs whitespace-nowrap">{voter.matricNumber}</td>
+                  <td className="py-3 px-4 text-white/60 text-xs whitespace-nowrap">{voter.votedFor}</td>
+                  <td className="py-3 px-4 text-white/30 text-xs whitespace-nowrap">
+                    {new Date(voter.votedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ElectionResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [election, setElection] = useState<Election | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
-  const [viewMode, setViewMode] = useState<'results' | 'breakdown'>('results')
+  const [viewMode, setViewMode] = useState<'results' | 'breakdown' | 'voters'>('results')
   const [breakdown, setBreakdown] = useState<VoterBreakdown | null>(null)
   const [breakdownLoading, setBreakdownLoading] = useState(false)
   const captureRef = useRef<HTMLDivElement>(null)
@@ -181,8 +235,7 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
     }
   }
 
-  const handleViewBreakdown = async () => {
-    setViewMode('breakdown')
+  const loadBreakdown = async () => {
     if (breakdown) return
     setBreakdownLoading(true)
     try {
@@ -193,6 +246,16 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
     } finally {
       setBreakdownLoading(false)
     }
+  }
+
+  const handleViewBreakdown = async () => {
+    setViewMode('breakdown')
+    await loadBreakdown()
+  }
+
+  const handleViewVoters = async () => {
+    setViewMode('voters')
+    await loadBreakdown()
   }
 
   if (loading) {
@@ -250,6 +313,14 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
                   : { color: 'rgba(255,255,255,0.35)' }}>
                 Voter Breakdown
               </button>
+              <button
+                onClick={handleViewVoters}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={viewMode === 'voters'
+                  ? { background: 'rgba(168,85,247,0.2)', color: '#c084fc' }
+                  : { color: 'rgba(255,255,255,0.35)' }}>
+                All Voters
+              </button>
             </div>
           )}
           {isAdmin && viewMode === 'results' && (
@@ -278,6 +349,19 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
           <VoterBreakdownView breakdown={breakdown} />
         ) : (
           <p className="text-center text-white/30 py-20 text-sm">Failed to load breakdown.</p>
+        )
+      )}
+
+      {/* All Voters flat list */}
+      {viewMode === 'voters' && (
+        breakdownLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+          </div>
+        ) : breakdown ? (
+          <AllVotersView breakdown={breakdown} />
+        ) : (
+          <p className="text-center text-white/30 py-20 text-sm">Failed to load voter list.</p>
         )
       )}
 
