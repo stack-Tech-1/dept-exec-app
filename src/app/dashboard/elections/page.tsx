@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Vote, Plus, X, Share2, Trash2, ChevronDown,
   Users, Trophy, BarChart2, Check, AlertTriangle, Loader2,
-  Link2, CheckCircle
+  Link2, CheckCircle, Pause, Play
 } from 'lucide-react'
 import Link from 'next/link'
 import { authService } from '@/services/auth'
@@ -870,6 +870,8 @@ export default function ElectionsPage() {
   const [confirmDeleteSessionToken, setConfirmDeleteSessionToken] = useState<string | null>(null)
   const [deletingSessionToken, setDeletingSessionToken] = useState<string | null>(null)
   const [sessionCopied, setSessionCopied] = useState<string | null>(null)
+  const [pausingToken, setPausingToken] = useState<string | null>(null)
+  const [resumingToken, setResumingToken] = useState<string | null>(null)
 
   const totalElections = elections.length
   const openElections = elections.filter(e => e.status === 'OPEN').length
@@ -944,6 +946,24 @@ export default function ElectionsPage() {
     navigator.clipboard.writeText(`${window.location.origin}/vote/session/${token}`)
     setSessionCopied(token)
     setTimeout(() => setSessionCopied(null), 2000)
+  }
+
+  const handlePauseSession = async (token: string) => {
+    setPausingToken(token)
+    try {
+      await votingSessionService.pauseSession(token)
+      setVotingSessions(prev => prev.map(s => s.token === token ? { ...s, isPaused: true } : s))
+    } catch { /* silent */ }
+    finally { setPausingToken(null) }
+  }
+
+  const handleResumeSession = async (token: string) => {
+    setResumingToken(token)
+    try {
+      await votingSessionService.resumeSession(token)
+      setVotingSessions(prev => prev.map(s => s.token === token ? { ...s, isPaused: false } : s))
+    } catch { /* silent */ }
+    finally { setResumingToken(null) }
   }
 
   useEffect(() => {
@@ -1124,12 +1144,17 @@ export default function ElectionsPage() {
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                         sessionStatus === 'ACTIVE'
                           ? 'bg-emerald-500/20 text-emerald-400'
+                          : sessionStatus === 'PAUSED'
+                          ? 'bg-amber-500/20 text-amber-400'
                           : sessionStatus === 'DEACTIVATED'
                           ? 'bg-rose-500/15 text-rose-400'
                           : 'bg-white/[0.07] text-white/40'
                       }`}>
                         {sessionStatus === 'ACTIVE' && (
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        )}
+                        {sessionStatus === 'PAUSED' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                         )}
                         {sessionStatus}
                       </span>
@@ -1154,8 +1179,33 @@ export default function ElectionsPage() {
                       {sessionCopied === s.token ? 'Copied!' : 'Copy Link'}
                     </button>
 
-                    {getSessionStatus(s) === 'ACTIVE' && isAdmin && (
+                    {(getSessionStatus(s) === 'ACTIVE' || getSessionStatus(s) === 'PAUSED') && isAdmin && (
                       <>
+                        {getSessionStatus(s) === 'ACTIVE' ? (
+                          <button
+                            type="button"
+                            onClick={() => handlePauseSession(s.token)}
+                            disabled={pausingToken === s.token}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors
+                              bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 disabled:opacity-40">
+                            {pausingToken === s.token
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Pause className="w-3.5 h-3.5" />}
+                            Pause
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleResumeSession(s.token)}
+                            disabled={resumingToken === s.token}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors
+                              bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40">
+                            {resumingToken === s.token
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Play className="w-3.5 h-3.5" />}
+                            Resume
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleCloseAllElections(s.token)}
@@ -1181,7 +1231,7 @@ export default function ElectionsPage() {
                       </>
                     )}
 
-                    {getSessionStatus(s) !== 'ACTIVE' && isAdmin && (
+                    {(getSessionStatus(s) === 'DEACTIVATED' || getSessionStatus(s) === 'EXPIRED') && isAdmin && (
                       confirmDeleteSessionToken === s.token ? (
                         <div className="flex items-center gap-1.5">
                           <button

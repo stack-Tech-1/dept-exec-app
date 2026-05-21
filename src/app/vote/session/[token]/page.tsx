@@ -4,11 +4,11 @@ import { useState, useEffect, use } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CheckCircle, XCircle, AlertTriangle, Vote,
-  Loader2, ChevronLeft,
+  Loader2, ChevronLeft, PauseCircle,
 } from 'lucide-react'
 
 /* ─── Types ──────────────────────────────────────── */
-type PageState = 'loading' | 'invalid' | 'error' | 'positions' | 'candidates' | 'success'
+type PageState = 'loading' | 'invalid' | 'paused' | 'error' | 'positions' | 'candidates' | 'success'
 type VoteValue = string | 'ABSTAIN'
 
 interface SessionElectionCandidate {
@@ -31,6 +31,7 @@ interface VotingSessionData {
   token: string
   label: string
   isActive: boolean
+  isPaused?: boolean
   elections: SessionElection[]
   expiresAt?: string
 }
@@ -475,6 +476,7 @@ export default function VotingSessionPage({
 
   const [pageState, setPageState]           = useState<PageState>('loading')
   const [sessionData, setSessionData]       = useState<VotingSessionData | null>(null)
+  const [pausedLabel, setPausedLabel]       = useState('')
   const [votes, setVotes]                   = useState<Record<string, VoteValue>>({})
   const [activeElectionIdx, setActiveElectionIdx] = useState(0)
   const [showSubmitModal, setShowSubmitModal]     = useState(false)
@@ -488,6 +490,7 @@ export default function VotingSessionPage({
         const res = await fetch(`${API}/voting-sessions/${token}`)
         if (!res.ok) { setPageState(res.status === 404 || res.status === 400 ? 'invalid' : 'error'); return }
         const data: VotingSessionData = await res.json()
+        if (data.isPaused) { setPausedLabel(data.label ?? ''); setPageState('paused'); return }
         if (!data.isActive) { setPageState('invalid'); return }
         if (data.expiresAt && new Date(data.expiresAt) < new Date()) { setPageState('invalid'); return }
         setSessionData(data)
@@ -553,6 +556,34 @@ export default function VotingSessionPage({
                   </p>
                   <p className="text-xs text-white/20 mt-1">
                     Please contact the administrator for a new link.
+                  </p>
+                </div>
+                <p className="text-[11px] text-white/20">IESA — Industrial and Production Engineering</p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Paused ── */}
+          {pageState === 'paused' && (
+            <motion.div key="paused" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+              className="w-full max-w-sm">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center space-y-4"
+                style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto">
+                  <PauseCircle className="w-8 h-8 text-amber-400" />
+                </div>
+                <div>
+                  {pausedLabel && (
+                    <p className="text-[11px] text-white/30 font-bold tracking-[0.15em] uppercase mb-1">{pausedLabel}</p>
+                  )}
+                  <h2 className="text-xl font-black text-white/70" style={{ fontFamily: 'Syne, sans-serif' }}>
+                    Voting Temporarily Paused
+                  </h2>
+                  <p className="text-sm text-white/30 mt-2">
+                    The administrator has paused this voting session.
+                  </p>
+                  <p className="text-xs text-white/20 mt-1">
+                    Please hold on and check back in a few minutes.
                   </p>
                 </div>
                 <p className="text-[11px] text-white/20">IESA — Industrial and Production Engineering</p>

@@ -4,7 +4,7 @@ export interface SessionElectionRef {
   _id: string
   title: string
   position: string
-  status: 'PENDING' | 'OPEN' | 'CLOSED'
+  status: 'PENDING' | 'OPEN' | 'PAUSED' | 'CLOSED'
 }
 
 export interface VotingSession {
@@ -12,15 +12,17 @@ export interface VotingSession {
   label: string
   elections: SessionElectionRef[]
   isActive: boolean
+  isPaused?: boolean
   expiresAt?: string
-  status?: 'ACTIVE' | 'EXPIRED' | 'DEACTIVATED'
+  status?: 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'DEACTIVATED'
   createdAt: string
   createdBy?: { name: string }
 }
 
-export function getSessionStatus(s: VotingSession): 'ACTIVE' | 'EXPIRED' | 'DEACTIVATED' {
+export function getSessionStatus(s: VotingSession): 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'DEACTIVATED' {
   if (!s.isActive) return 'DEACTIVATED'
   if (s.expiresAt && new Date(s.expiresAt) < new Date()) return 'EXPIRED'
+  if (s.isPaused) return 'PAUSED'
   return 'ACTIVE'
 }
 
@@ -39,6 +41,14 @@ class VotingSessionService {
 
   async closeSessionElections(token: string): Promise<{ message: string }> {
     return API.patch(`/voting-sessions/${token}/close-all`, {}) as any
+  }
+
+  async pauseSession(token: string): Promise<{ message: string; isPaused: boolean }> {
+    return API.patch(`/voting-sessions/${token}/pause`, {}) as any
+  }
+
+  async resumeSession(token: string): Promise<{ message: string; isPaused: boolean }> {
+    return API.patch(`/voting-sessions/${token}/resume`, {}) as any
   }
 
   async deleteSession(token: string): Promise<{ message: string }> {
