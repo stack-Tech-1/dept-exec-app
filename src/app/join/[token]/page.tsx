@@ -4,7 +4,7 @@ import { use, useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   User, Mail, Phone, Hash, GraduationCap, Users,
-  CheckCircle2, AlertTriangle, Loader2, ArrowRight,
+  CheckCircle2, AlertTriangle, Loader2, ArrowRight, Check,
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -167,6 +167,8 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
   const [phone, setPhone] = useState('')
   const [level, setLevel] = useState('')
   const [gender, setGender] = useState('')
+  const [isDE, setIsDE] = useState(false)
+  const [isPending, setIsPending] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
@@ -198,7 +200,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitError('')
-    if (level && matricNumber.trim() && !isMatricInRange(matricNumber.trim(), level)) {
+    if (!isDE && level && matricNumber.trim() && !isMatricInRange(matricNumber.trim(), level)) {
       setSubmitError('Matric number is not in the valid range for the selected level. Please check your details.')
       return
     }
@@ -207,10 +209,11 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
       const res = await fetch(`${API_BASE}/members/register/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, matricNumber, phone, level, gender }),
+        body: JSON.stringify({ fullName, email, matricNumber, phone, level, gender, isDirectEntry: isDE }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Registration failed. Please try again.')
+      if (data.pending) setIsPending(true)
       setPageState('success')
     } catch (err: any) {
       setSubmitError(err.message || 'Something went wrong. Please try again.')
@@ -278,27 +281,51 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
               transition={{ type: 'spring', stiffness: 180, damping: 18 }}
               className="relative z-10 w-full max-w-sm text-center"
             >
-              <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.06] backdrop-blur-md p-10">
-                <motion.div
-                  initial={{ scale: 0 }} animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.15 }}
-                  className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/30
-                    flex items-center justify-center mx-auto mb-6"
-                >
-                  <CheckCircle2 className="w-9 h-9 text-emerald-400" />
-                </motion.div>
-                <h2 className="font-display text-white text-2xl font-bold mb-3 leading-tight">
-                  Registration<br />Successful!
-                </h2>
-                <p className="text-white/55 text-sm leading-relaxed">
-                  Welcome to the IPE Department.<br />
-                  Your registration has been recorded.
-                </p>
-                <div className="mt-8 h-px bg-gradient-to-r from-transparent via-emerald-600/30 to-transparent" />
-                <p className="text-white/20 text-[11px] tracking-[0.18em] uppercase mt-5">
-                  Industrial &amp; Production Engineering
-                </p>
-              </div>
+              {isPending ? (
+                <div className="rounded-3xl border border-amber-500/20 bg-amber-500/[0.06] backdrop-blur-md p-10">
+                  <motion.div
+                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.15 }}
+                    className="w-20 h-20 rounded-full bg-amber-500/20 border border-amber-500/30
+                      flex items-center justify-center mx-auto mb-6"
+                  >
+                    <CheckCircle2 className="w-9 h-9 text-amber-400" />
+                  </motion.div>
+                  <h2 className="font-display text-white text-2xl font-bold mb-3 leading-tight">
+                    Application<br />Submitted!
+                  </h2>
+                  <p className="text-white/55 text-sm leading-relaxed">
+                    Your D.E. registration is pending admin review.<br />
+                    You will be able to vote once your application is approved.
+                  </p>
+                  <div className="mt-8 h-px bg-gradient-to-r from-transparent via-amber-600/30 to-transparent" />
+                  <p className="text-white/20 text-[11px] tracking-[0.18em] uppercase mt-5">
+                    Industrial &amp; Production Engineering
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.06] backdrop-blur-md p-10">
+                  <motion.div
+                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.15 }}
+                    className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/30
+                      flex items-center justify-center mx-auto mb-6"
+                  >
+                    <CheckCircle2 className="w-9 h-9 text-emerald-400" />
+                  </motion.div>
+                  <h2 className="font-display text-white text-2xl font-bold mb-3 leading-tight">
+                    Registration<br />Successful!
+                  </h2>
+                  <p className="text-white/55 text-sm leading-relaxed">
+                    Welcome to the IPE Department.<br />
+                    Your registration has been recorded.
+                  </p>
+                  <div className="mt-8 h-px bg-gradient-to-r from-transparent via-emerald-600/30 to-transparent" />
+                  <p className="text-white/20 text-[11px] tracking-[0.18em] uppercase mt-5">
+                    Industrial &amp; Production Engineering
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -386,6 +413,24 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                         required
                       />
                     </Field>
+
+                    <div className="sm:col-span-2 flex items-start gap-3 -mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsDE(v => !v)}
+                        className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                          isDE
+                            ? 'bg-sky-500/30 border-sky-500/60'
+                            : 'bg-white/[0.05] border-white/[0.15]'
+                        }`}
+                      >
+                        {isDE && <Check className="w-3 h-3 text-sky-400" />}
+                      </button>
+                      <div>
+                        <p className="text-sm text-white/70 leading-snug">I am a Direct Entry (D.E.) student</p>
+                        <p className="text-xs text-white/30 mt-0.5">My matric number may not fall within the standard level range. Your registration will require admin approval.</p>
+                      </div>
+                    </div>
 
                     <Field label="Level / Year of Study" required icon={GraduationCap}>
                       <select

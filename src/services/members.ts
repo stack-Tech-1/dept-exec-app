@@ -20,6 +20,8 @@ export interface Member {
     note?: string;
   }>;
   notes?: string;
+  isDirectEntry?: boolean;
+  approvalStatus?: 'approved' | 'pending' | 'rejected';
   createdAt: string;
 }
 
@@ -87,6 +89,18 @@ class MembersService {
 
   async deleteRegistrationLink(id: string): Promise<void> {
     return API.delete(`/members/links/${id}`) as any;
+  }
+
+  async listPendingDE(): Promise<Member[]> {
+    return API.get('/members/pending-de') as any;
+  }
+
+  async approveMember(id: string): Promise<{ message: string; member: Member }> {
+    return API.patch(`/members/${id}/approve`, {}) as any;
+  }
+
+  async rejectMember(id: string): Promise<{ message: string }> {
+    return API.delete(`/members/${id}/reject`) as any;
   }
 }
 

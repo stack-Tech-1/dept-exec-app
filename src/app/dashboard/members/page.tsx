@@ -20,8 +20,8 @@ const MATRIC_RANGES: Record<string, { min: number; max: number }> = {
   '500': { min: 231518, max: 231580 },
 }
 
-function isMatricFlagged(matric: string | undefined, level: string): boolean {
-  if (!matric) return false
+function isMatricFlagged(matric: string | undefined, level: string, isDirectEntry?: boolean): boolean {
+  if (!matric || isDirectEntry) return false
   const range = MATRIC_RANGES[level]
   if (!range) return false
   const num = parseInt(matric, 10)
@@ -454,10 +454,18 @@ export default function MembersPage() {
   const [sendingCodeIds, setSendingCodeIds] = useState<Set<string>>(new Set())
   const [codeSentIds, setCodeSentIds]       = useState<Set<string>>(new Set())
   const [flaggedOnly, setFlaggedOnly]       = useState(false)
+  const [pendingDE, setPendingDE]           = useState<Member[]>([])
+  const [approvingId, setApprovingId]       = useState<string | null>(null)
+  const [rejectingId, setRejectingId]       = useState<string | null>(null)
+  const [confirmRejectId, setConfirmRejectId] = useState<string | null>(null)
 
   useEffect(() => {
     const user = authService.getCurrentUser()
-    setIsAdmin(user?.role === ROLES.ADMIN)
+    const admin = user?.role === ROLES.ADMIN
+    setIsAdmin(admin)
+    if (admin) {
+      membersService.listPendingDE().then(setPendingDE).catch(() => {})
+    }
   }, [])
 
   useEffect(() => {
@@ -500,7 +508,7 @@ export default function MembersPage() {
   }, [levelFilter, genderFilter, debouncedSearch, currentPage, flaggedOnly])
 
   const displayedMembers = flaggedOnly
-    ? members.filter(m => isMatricFlagged(m.matricNumber, m.level))
+    ? members.filter(m => isMatricFlagged(m.matricNumber, m.level, m.isDirectEntry))
     : members
 
   const handleCopyLink = (token: string, id: string) => {
@@ -545,6 +553,26 @@ export default function MembersPage() {
     finally {
       setSendingCodeIds(prev => { const s = new Set(prev); s.delete(member._id); return s })
     }
+  }
+
+  const handleApproveDE = async (id: string) => {
+    setApprovingId(id)
+    try {
+      const { member } = await membersService.approveMember(id)
+      setPendingDE(prev => prev.filter(m => m._id !== id))
+      setMembers(prev => [member, ...prev])
+      setTotalMembers(t => t + 1)
+    } catch { /* silent */ }
+    finally { setApprovingId(null) }
+  }
+
+  const handleRejectDE = async (id: string) => {
+    setRejectingId(id)
+    try {
+      await membersService.rejectMember(id)
+      setPendingDE(prev => prev.filter(m => m._id !== id))
+    } catch { /* silent */ }
+    finally { setRejectingId(null); setConfirmRejectId(null) }
   }
 
   const handleExportCsv = () => {
@@ -679,6 +707,89 @@ export default function MembersPage() {
           )}
         </div>
 
+        {/* ── Pending D.E. Applications ── */}
+        {isAdmin && pendingDE.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-black text-white/50 tracking-[0.15em] uppercase"
+                style={{ fontFamily: 'Syne, sans-serif' }}>Pending D.E. Applications</h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                {pendingDE.length}
+              </span>
+            </div>
+            <div className="rounded-2xl border border-amber-500/15 bg-amber-500/[0.03] overflow-hidden">
+              <div className="px-4 py-2.5 bg-amber-500/[0.06] border-b border-amber-500/10 flex items-center gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                <p className="text-xs text-amber-400/80 font-medium">
+                  These students registered as Direct Entry. Review and approve or reject each application.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/[0.05]">
+                      {['Name', 'Matric No.', 'Level', 'Email', 'Submitted'].map(h => (
+                        <th key={h} className="py-2.5 px-4 text-left text-[10px] font-black text-white/30 tracking-[0.12em] uppercase whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                      <th className="py-2.5 px-4 text-right text-[10px] font-black text-white/30 tracking-[0.12em] uppercase whitespace-nowrap">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {pendingDE.map(m => (
+                      <tr key={m._id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-4 text-white/80 font-medium whitespace-nowrap">{m.name}</td>
+                        <td className="py-3 px-4 text-white/60 font-mono text-xs whitespace-nowrap">
+                          <span>{m.matricNumber ?? <span className="text-white/20">—</span>}</span>
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 border border-sky-500/25 text-sky-400">D.E.</span>
+                        </td>
+                        <td className="py-3 px-4"><LevelBadge level={m.level} /></td>
+                        <td className="py-3 px-4 text-white/45 text-xs whitespace-nowrap">
+                          {m.email ?? <span className="text-white/20">—</span>}
+                        </td>
+                        <td className="py-3 px-4 text-white/35 text-xs whitespace-nowrap">
+                          {new Date(m.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          {confirmRejectId === m._id ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => setConfirmRejectId(null)}
+                                className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 text-xs font-medium hover:text-white/70 transition-colors">
+                                Cancel
+                              </button>
+                              <button onClick={() => handleRejectDE(m._id)} disabled={rejectingId === m._id}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/30 disabled:opacity-40 transition-colors">
+                                {rejectingId === m._id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                Confirm
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => handleApproveDE(m._id)} disabled={approvingId === m._id}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 disabled:opacity-40 transition-colors">
+                                {approvingId === m._id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                Approve
+                              </button>
+                              <button onClick={() => setConfirmRejectId(m._id)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/30 text-xs font-medium hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-colors">
+                                <Trash2 className="w-3 h-3" />
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Registered Members ── */}
         <div className="space-y-3">
           {/* Section header */}
@@ -804,7 +915,12 @@ export default function MembersPage() {
                       <td className="py-3 px-4 text-white/60 font-mono text-xs whitespace-nowrap">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span>{m.matricNumber ?? <span className="text-white/20">—</span>}</span>
-                          {isMatricFlagged(m.matricNumber, m.level) && (
+                          {m.isDirectEntry && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 border border-sky-500/25 text-sky-400">
+                              D.E.
+                            </span>
+                          )}
+                          {isMatricFlagged(m.matricNumber, m.level, m.isDirectEntry) && (
                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold
                               bg-amber-500/15 text-amber-400 border border-amber-500/20">
                               <AlertTriangle className="w-2.5 h-2.5" /> Out of range
