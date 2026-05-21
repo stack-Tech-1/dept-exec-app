@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, use } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Download } from 'lucide-react'
 import Link from 'next/link'
-import { electionsService, type Election, type Candidate } from '@/services/elections'
+import { electionsService, type Election, type Candidate, type VoterBreakdown } from '@/services/elections'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 
@@ -30,14 +30,109 @@ function CandidateAvatar({ candidate, size = 'md' }: { candidate: Candidate; siz
   )
 }
 
+function VoterBreakdownView({ breakdown }: { breakdown: VoterBreakdown }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const toggle = (id: string) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h2 className="text-lg font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>{breakdown.title}</h2>
+          <p className="text-xs text-white/30 mt-0.5">{breakdown.totalVotes} total votes · {breakdown.session}</p>
+        </div>
+        <span className="text-[10px] font-black tracking-[0.15em] uppercase px-2.5 py-1 rounded-full"
+          style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
+          Confidential
+        </span>
+      </div>
+
+      {breakdown.candidates.map((candidate, idx) => {
+        const isOpen = expanded[candidate._id] ?? true
+        const color = idx === 0 && candidate.voteCount > 0 ? '#fbbf24' : getColor(candidate.name)
+        return (
+          <div key={candidate._id} className="rounded-2xl overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${color}20` }}>
+            {/* Candidate header — click to expand/collapse */}
+            <button
+              onClick={() => toggle(candidate._id)}
+              className="w-full flex items-center gap-4 px-5 py-4 text-left"
+            >
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
+                style={{ background: color + '18', color }}>
+                {idx + 1}
+              </div>
+              {candidate.photo ? (
+                <img src={candidate.photo} alt={candidate.name}
+                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                  style={{ border: `2px solid ${color}40` }} />
+              ) : (
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                  style={{ background: color + '22', border: `2px solid ${color}45`, color }}>
+                  {initials(candidate.name)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate">{candidate.name}</p>
+                {candidate.matricNumber && (
+                  <p className="text-[11px] text-white/30">{candidate.matricNumber}</p>
+                )}
+              </div>
+              <div className="text-right flex-shrink-0 mr-2">
+                <p className="text-base font-black" style={{ color }}>{candidate.voteCount}</p>
+                <p className="text-[10px] text-white/30">vote{candidate.voteCount !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="text-white/30 flex-shrink-0" style={{ fontSize: 12 }}>
+                {isOpen ? '▲' : '▼'}
+              </div>
+            </button>
+
+            {/* Voter list */}
+            {isOpen && (
+              <div className="border-t px-5 pb-4" style={{ borderColor: `${color}15` }}>
+                {candidate.voters.length === 0 ? (
+                  <p className="text-xs text-white/20 pt-3">No votes recorded.</p>
+                ) : (
+                  <div className="pt-3 space-y-2">
+                    {candidate.voters.map((voter, vi) => (
+                      <div key={vi} className="flex items-center gap-3 px-3 py-2 rounded-xl"
+                        style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
+                          style={{ background: color + '18', color }}>
+                          {voter.name !== 'Unknown' ? voter.name.charAt(0).toUpperCase() : '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-white/80 truncate">{voter.name}</p>
+                          <p className="text-[10px] text-white/30">{voter.matricNumber}</p>
+                        </div>
+                        <p className="text-[10px] text-white/20 flex-shrink-0">
+                          {new Date(voter.votedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ElectionResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [election, setElection] = useState<Election | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const [viewMode, setViewMode] = useState<'results' | 'breakdown'>('results')
+  const [breakdown, setBreakdown] = useState<VoterBreakdown | null>(null)
+  const [breakdownLoading, setBreakdownLoading] = useState(false)
   const captureRef = useRef<HTMLDivElement>(null)
   const currentUser = authService.getCurrentUser()
   const isAdmin = currentUser?.role === ROLES.ADMIN
+  const canViewBreakdown = isAdmin || currentUser?.position === 'Electoral Chairman'
 
   useEffect(() => {
     electionsService.getElectionById(id)
@@ -86,6 +181,20 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
     }
   }
 
+  const handleViewBreakdown = async () => {
+    setViewMode('breakdown')
+    if (breakdown) return
+    setBreakdownLoading(true)
+    try {
+      const data = await electionsService.getVoterBreakdown(id)
+      setBreakdown(data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setBreakdownLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#030a05' }}>
@@ -121,23 +230,59 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
           <ArrowLeft className="w-4 h-4" />
           Back to Elections
         </Link>
-        {isAdmin && (
-          <motion.button onClick={handleDownload} disabled={downloading}
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-            style={{
-              background: 'linear-gradient(135deg, #0d7c3d, #0a5a2d)',
-              boxShadow: '0 4px 16px rgba(13,124,61,0.35)',
-              color: 'white'
-            }}>
-            <Download className="w-4 h-4" />
-            {downloading ? 'Generating…' : 'Download Image'}
-          </motion.button>
-        )}
+        <div className="flex items-center gap-3">
+          {canViewBreakdown && (
+            <div className="flex items-center rounded-xl p-1 gap-1"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <button
+                onClick={() => setViewMode('results')}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={viewMode === 'results'
+                  ? { background: 'rgba(13,124,61,0.4)', color: '#34d399' }
+                  : { color: 'rgba(255,255,255,0.35)' }}>
+                Results
+              </button>
+              <button
+                onClick={handleViewBreakdown}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={viewMode === 'breakdown'
+                  ? { background: 'rgba(239,68,68,0.2)', color: '#f87171' }
+                  : { color: 'rgba(255,255,255,0.35)' }}>
+                Voter Breakdown
+              </button>
+            </div>
+          )}
+          {isAdmin && viewMode === 'results' && (
+            <motion.button onClick={handleDownload} disabled={downloading}
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+              style={{
+                background: 'linear-gradient(135deg, #0d7c3d, #0a5a2d)',
+                boxShadow: '0 4px 16px rgba(13,124,61,0.35)',
+                color: 'white'
+              }}>
+              <Download className="w-4 h-4" />
+              {downloading ? 'Generating…' : 'Download Image'}
+            </motion.button>
+          )}
+        </div>
       </div>
 
+      {/* Voter Breakdown view */}
+      {viewMode === 'breakdown' && (
+        breakdownLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+          </div>
+        ) : breakdown ? (
+          <VoterBreakdownView breakdown={breakdown} />
+        ) : (
+          <p className="text-center text-white/30 py-20 text-sm">Failed to load breakdown.</p>
+        )
+      )}
+
       {/* Capture zone */}
-      <div ref={captureRef} className="max-w-2xl mx-auto rounded-3xl overflow-hidden"
+      {viewMode === 'results' && <div ref={captureRef} className="max-w-2xl mx-auto rounded-3xl overflow-hidden"
         style={{
           background: 'linear-gradient(160deg, #061510 0%, #030a05 60%, #040d07 100%)',
           border: '1px solid rgba(255,255,255,0.07)',
@@ -322,7 +467,7 @@ export default function ElectionResultsPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div className="h-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(13,124,61,0.25), transparent)' }} />
-      </div>
+      </div>}
     </div>
   )
 }

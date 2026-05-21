@@ -25,6 +25,30 @@ export interface Election {
   createdAt: string;
 }
 
+export interface BreakdownVoter {
+  matricNumber: string;
+  name: string;
+  votedAt: string;
+}
+
+export interface BreakdownCandidate {
+  _id: string;
+  name: string;
+  matricNumber?: string;
+  photo?: string;
+  voteCount: number;
+  voters: BreakdownVoter[];
+}
+
+export interface VoterBreakdown {
+  electionId: string;
+  title: string;
+  position: string;
+  session: string;
+  totalVotes: number;
+  candidates: BreakdownCandidate[];
+}
+
 class ElectionsService {
   async getElections(params?: { status?: string; session?: string }): Promise<Election[]> {
     return API.get('/elections', { params }) as any;
@@ -53,6 +77,9 @@ class ElectionsService {
   }
   async deleteElection(id: string): Promise<void> {
     return API.delete(`/elections/${id}`) as any;
+  }
+  async getVoterBreakdown(id: string): Promise<VoterBreakdown> {
+    return API.get(`/elections/${id}/voter-breakdown`) as any;
   }
 }
 
