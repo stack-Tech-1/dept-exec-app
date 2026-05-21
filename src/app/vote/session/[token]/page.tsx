@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   CheckCircle, XCircle, AlertTriangle, Vote,
-  Loader2, ArrowLeft, ArrowRight, ChevronLeft,
+  Loader2, ChevronLeft,
 } from 'lucide-react'
 
 /* ─── Types ──────────────────────────────────────── */
@@ -141,66 +141,7 @@ function PositionsOverview({
   )
 }
 
-/* ─── Candidate Slide ────────────────────────────── */
-function CandidateSlide({
-  candidate,
-  direction,
-}: {
-  candidate: SessionElectionCandidate
-  direction: number
-}) {
-  return (
-    <motion.div
-      key={candidate._id}
-      initial={{ x: direction > 0 ? 300 : -300, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: direction > 0 ? -300 : 300, opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-      className="w-full"
-    >
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
-        {/* Photo — top half */}
-        <div className="relative w-full" style={{ aspectRatio: '4/3' }}>
-          {candidate.photo ? (
-            <img
-              src={candidate.photo}
-              alt={candidate.name}
-              className="w-full h-full object-cover"
-              draggable={false}
-            />
-          ) : (
-            <div className="w-full h-full bg-white/[0.04] flex items-center justify-center">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] flex items-center justify-center">
-                <span className="text-4xl font-black text-white">
-                  {candidate.name[0]?.toUpperCase()}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Bio — bottom half */}
-        <div className="p-5 space-y-2">
-          <div>
-            <h3 className="text-xl font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
-              {candidate.name}
-            </h3>
-            {candidate.matricNumber && (
-              <p className="text-xs text-white/35 font-mono mt-0.5">{candidate.matricNumber}</p>
-            )}
-          </div>
-          {candidate.bio ? (
-            <p className="text-sm text-white/55 leading-relaxed">{candidate.bio}</p>
-          ) : (
-            <p className="text-sm text-white/20 italic">No bio provided.</p>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-/* ─── Candidate Slideshow ────────────────────────── */
+/* ─── Candidate Slideshow (vertical list) ───────── */
 function CandidateSlideshow({
   election,
   currentVote,
@@ -212,33 +153,7 @@ function CandidateSlideshow({
   onVote: (value: VoteValue | undefined) => void
   onBack: () => void
 }) {
-  const [candIdx, setCandIdx] = useState(0)
-  const [direction, setDirection] = useState(1)
-
   const candidates = election.candidates
-  const candidate = candidates[candIdx]
-  const total = candidates.length
-
-  const goTo = (nextIdx: number) => {
-    if (nextIdx < 0 || nextIdx >= total) return
-    setDirection(nextIdx > candIdx ? 1 : -1)
-    setCandIdx(nextIdx)
-  }
-
-  const handleDragEnd = (_: unknown, info: { offset: { x: number } }) => {
-    if (info.offset.x < -60) goTo(candIdx + 1)
-    else if (info.offset.x > 60) goTo(candIdx - 1)
-  }
-
-  const handleSelect = () => {
-    onVote(currentVote === candidate._id ? undefined : candidate._id)
-  }
-
-  const handleAbstain = () => {
-    onVote(currentVote === 'ABSTAIN' ? undefined : 'ABSTAIN')
-  }
-
-  const isSelected = currentVote === candidate._id
   const isAbstained = currentVote === 'ABSTAIN'
 
   return (
@@ -257,95 +172,87 @@ function CandidateSlideshow({
             {election.position}
           </h2>
         </div>
-        <span className="text-xs text-white/30 shrink-0 font-mono">
-          {candIdx + 1} / {total}
-        </span>
       </div>
 
-      {/* Slide area with desktop arrows */}
-      <div className="relative flex items-center">
-        {/* Prev arrow — desktop only */}
-        <button
-          onClick={() => goTo(candIdx - 1)}
-          disabled={candIdx === 0}
-          className="hidden md:flex absolute -left-14 w-10 h-10 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] disabled:opacity-20 transition-all z-10"
-        >
-          <ArrowLeft className="w-4 h-4 text-white/60" />
-        </button>
+      {/* Vertical candidate list */}
+      <div className="space-y-4">
+        {candidates.map((candidate) => {
+          const isSelected = currentVote === candidate._id
+          return (
+            <motion.div
+              key={candidate._id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl overflow-hidden transition-all"
+              style={{
+                border: isSelected ? '1px solid rgba(13,124,61,0.6)' : '1px solid rgba(255,255,255,0.08)',
+                background: isSelected ? 'rgba(13,124,61,0.08)' : 'rgba(255,255,255,0.03)',
+              }}
+            >
+              {/* Photo */}
+              <div className="relative w-full" style={{ aspectRatio: '4/3' }}>
+                {candidate.photo ? (
+                  <img
+                    src={candidate.photo}
+                    alt={candidate.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-white/[0.04] flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0d7c3d] to-[#0a5a2d] flex items-center justify-center">
+                      <span className="text-4xl font-black text-white">
+                        {candidate.name[0]?.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-        {/* Draggable wrapper */}
-        <motion.div
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.15}
-          onDragEnd={handleDragEnd}
-          className="w-full cursor-grab active:cursor-grabbing select-none"
-        >
-          <AnimatePresence mode="wait" custom={direction}>
-            <CandidateSlide key={candidate._id} candidate={candidate} direction={direction} />
-          </AnimatePresence>
-        </motion.div>
+              {/* Name + bio + select button */}
+              <div className="p-5 space-y-3">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>
+                    {candidate.name}
+                  </h3>
+                  {candidate.matricNumber && (
+                    <p className="text-xs text-white/35 font-mono">{candidate.matricNumber}</p>
+                  )}
+                  {candidate.bio ? (
+                    <p className="text-sm text-white/55 leading-relaxed">{candidate.bio}</p>
+                  ) : (
+                    <p className="text-sm text-white/20 italic">No bio provided.</p>
+                  )}
+                </div>
 
-        {/* Next arrow — desktop only */}
-        <button
-          onClick={() => goTo(candIdx + 1)}
-          disabled={candIdx === total - 1}
-          className="hidden md:flex absolute -right-14 w-10 h-10 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] disabled:opacity-20 transition-all z-10"
-        >
-          <ArrowRight className="w-4 h-4 text-white/60" />
-        </button>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onVote(isSelected ? undefined : candidate._id)}
+                  className={`w-full py-3.5 rounded-xl font-black text-base transition-all ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white shadow-[0_8px_24px_rgba(13,124,61,0.4)]'
+                      : 'border border-emerald-500/40 text-emerald-400 hover:bg-emerald-950/40'
+                  }`}
+                >
+                  {isSelected ? `✓ Selected — ${candidate.name}` : `Select ${candidate.name}`}
+                </motion.button>
+              </div>
+            </motion.div>
+          )
+        })}
       </div>
 
-      {/* Dot indicators */}
-      {total > 1 && (
-        <div className="flex items-center justify-center gap-1.5">
-          {candidates.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i)}
-              className={`rounded-full transition-all ${
-                i === candIdx
-                  ? 'w-4 h-1.5 bg-emerald-500'
-                  : 'w-1.5 h-1.5 bg-white/20 hover:bg-white/40'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="space-y-2">
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleSelect}
-          className={`w-full py-4 rounded-xl font-black text-base transition-all ${
-            isSelected
-              ? 'bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d] text-white shadow-[0_8px_24px_rgba(13,124,61,0.4)]'
-              : 'border border-emerald-500/40 text-emerald-400 hover:bg-emerald-950/40'
-          }`}
-        >
-          {isSelected ? `✓ Selected — ${candidate.name}` : `Select ${candidate.name}`}
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleAbstain}
-          className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${
-            isAbstained
-              ? 'bg-white/[0.08] border border-white/20 text-white/70'
-              : 'border border-white/[0.06] text-white/30 hover:text-white/50 hover:border-white/15'
-          }`}
-        >
-          {isAbstained ? "✓ Marked as Undecided" : "I'm undecided for this position"}
-        </motion.button>
-      </div>
-
-      {/* Swipe hint — mobile only */}
-      <p className="text-center text-[11px] text-white/20 md:hidden">
-        Swipe left or right to view other candidates
-      </p>
+      {/* Undecided button */}
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onVote(isAbstained ? undefined : 'ABSTAIN')}
+        className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${
+          isAbstained
+            ? 'bg-white/[0.08] border border-white/20 text-white/70'
+            : 'border border-white/[0.06] text-white/30 hover:text-white/50 hover:border-white/15'
+        }`}
+      >
+        {isAbstained ? '✓ Marked as Undecided' : "I'm undecided for this position"}
+      </motion.button>
     </div>
   )
 }
