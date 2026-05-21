@@ -451,8 +451,8 @@ export default function MembersPage() {
   const [searchQuery, setSearchQuery]       = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [editingMember, setEditingMember]   = useState<Member | null>(null)
-  const [sendingCodeId, setSendingCodeId]   = useState<string | null>(null)
-  const [codeSentId, setCodeSentId]         = useState<string | null>(null)
+  const [sendingCodeIds, setSendingCodeIds] = useState<Set<string>>(new Set())
+  const [codeSentIds, setCodeSentIds]       = useState<Set<string>>(new Set())
   const [flaggedOnly, setFlaggedOnly]       = useState(false)
 
   useEffect(() => {
@@ -534,13 +534,17 @@ export default function MembersPage() {
   }
 
   const handleSendCode = async (member: Member) => {
-    setSendingCodeId(member._id)
+    setSendingCodeIds(prev => new Set(prev).add(member._id))
     try {
       await membersService.sendVoteCode(member._id)
-      setCodeSentId(member._id)
-      setTimeout(() => setCodeSentId(null), 3000)
+      setCodeSentIds(prev => new Set(prev).add(member._id))
+      setTimeout(() => {
+        setCodeSentIds(prev => { const s = new Set(prev); s.delete(member._id); return s })
+      }, 3000)
     } catch { /* silent */ }
-    finally { setSendingCodeId(null) }
+    finally {
+      setSendingCodeIds(prev => { const s = new Set(prev); s.delete(member._id); return s })
+    }
   }
 
   const handleExportCsv = () => {
@@ -838,19 +842,19 @@ export default function MembersPage() {
                           ) : (
                             <div className="flex items-center justify-end gap-1.5">
                               <button onClick={() => handleSendCode(m)}
-                                disabled={sendingCodeId === m._id}
+                                disabled={sendingCodeIds.has(m._id)}
                                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors disabled:opacity-40 ${
-                                  codeSentId === m._id
+                                  codeSentIds.has(m._id)
                                     ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
                                     : 'bg-white/[0.03] border-white/[0.06] text-white/25 hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-400'
                                 }`}>
-                                {sendingCodeId === m._id
+                                {sendingCodeIds.has(m._id)
                                   ? <Loader2 className="w-3 h-3 animate-spin" />
-                                  : codeSentId === m._id
+                                  : codeSentIds.has(m._id)
                                   ? <Check className="w-3 h-3" />
                                   : <Mail className="w-3 h-3" />
                                 }
-                                {codeSentId === m._id ? 'Sent!' : 'Send Code'}
+                                {codeSentIds.has(m._id) ? 'Sent!' : 'Send Code'}
                               </button>
                               <button onClick={() => setEditingMember(m)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/25 text-xs font-medium hover:bg-blue-500/10 hover:border-blue-500/20 hover:text-blue-400 transition-colors">
