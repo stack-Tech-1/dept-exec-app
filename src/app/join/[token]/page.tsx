@@ -395,7 +395,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                           <option value="" disabled>Select gender</option>
                           <option value="Male">Male</option>
                           <option value="Female">Female</option>
-                          <option value="Prefer not to say">Prefer not to say</option>
+                          {/*<option value="Prefer not to say">Prefer not to say</option>*/}
                         </select>
                       </Field>
                     </div>
