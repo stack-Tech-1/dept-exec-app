@@ -314,8 +314,14 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
     await new Promise(r => setTimeout(r, 300))
 
     try {
-      const domtoimage = await import('dom-to-image-more')
-      const dataUrl = await domtoimage.toPng(el, { quality: 1, scale: 2 })
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        backgroundColor: null,
+        useCORS: true,
+        logging: false,
+      })
+      const dataUrl = canvas.toDataURL('image/png')
       const link = document.createElement('a')
       link.download = `${session.label.replace(/\s+/g, '-').toLowerCase()}-session-results.png`
       link.href = dataUrl
