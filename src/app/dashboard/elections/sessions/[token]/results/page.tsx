@@ -12,6 +12,13 @@ import { ROLES } from '@/lib/constants'
 const AVATAR_COLORS = ['#10b981', '#3b82f6', '#a78bfa', '#f59e0b', '#f472b6', '#34d399', '#60a5fa', '#fb923c']
 const getColor = (name: string) => AVATAR_COLORS[(name || '').charCodeAt(0) % AVATAR_COLORS.length]
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
 function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
@@ -22,10 +29,10 @@ function CandidateAvatar({ candidate, size = 'md' }: { candidate: Candidate; siz
   return candidate.photo ? (
     <img src={candidate.photo} alt={candidate.name}
       className={`${sz} rounded-full object-cover flex-shrink-0`}
-      style={{ border: `2px solid ${color}50` }} />
+      style={{ border: `2px solid ${hexToRgba(color, 0.31)}` }} />
   ) : (
     <div className={`${sz} rounded-full flex items-center justify-center font-black flex-shrink-0`}
-      style={{ background: color + '22', border: `2px solid ${color}45`, color }}>
+      style={{ background: hexToRgba(color, 0.13), border: `2px solid ${hexToRgba(color, 0.27)}`, color }}>
       {initials(candidate.name)}
     </div>
   )
@@ -33,17 +40,20 @@ function CandidateAvatar({ candidate, size = 'md' }: { candidate: Candidate; siz
 
 function StatusChip({ status }: { status: string }) {
   if (status === 'OPEN') return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+      background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
       🟢 OPEN
     </span>
   )
   if (status === 'CLOSED') return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400">
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+      background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}>
       ✅ CLOSED
     </span>
   )
   return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] text-white/40">
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 9999,
+      background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
       PENDING
     </span>
   )
@@ -152,7 +162,7 @@ function ElectionResultSection({ election, index }: { election: Election; index:
                   border: isTop ? `1px solid ${winnerBorder}` : '1px solid rgba(255,255,255,0.04)',
                 }}>
                 <div className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black flex-shrink-0"
-                  style={{ background: color + '18', color }}>
+                  style={{ background: hexToRgba(color, 0.09), color }}>
                   {idx + 1}
                 </div>
                 <CandidateAvatar candidate={candidate} size="sm" />
@@ -301,7 +311,7 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
     styleTag.textContent = '* { outline: none !important; box-shadow: none !important; }'
     document.head.appendChild(styleTag)
 
-    await new Promise(r => setTimeout(r, 80))
+    await new Promise(r => setTimeout(r, 300))
 
     try {
       const domtoimage = await import('dom-to-image-more')
@@ -522,13 +532,14 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
           <div key={election._id}>
             <ElectionResultSection election={election} index={idx} />
             {idx < elections.length - 1 && (
-              <div className="mx-7 border-t border-white/[0.05]" />
+              <div style={{ marginLeft: '1.75rem', marginRight: '1.75rem', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
             )}
           </div>
         ))}
 
         {/* Footer */}
-        <div className="px-7 py-5 border-t border-white/[0.05] flex items-center justify-between mt-2">
+        <div className="px-7 py-5 flex items-center justify-between mt-2"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <div>
             <p className="text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: '#34d399', opacity: 0.7 }}>IESA</p>
             <p className="text-[10px] text-white/25">Industrial and Production Engineering · University of Ibadan</p>
