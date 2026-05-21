@@ -13,7 +13,7 @@ import { membersService, type Member, type RegistrationLink } from '@/services/m
 
 /* ─── Matric range validation ────────────────────── */
 const MATRIC_RANGES: Record<string, { min: number; max: number }> = {
-  '100': { min: 258411, max: 259091 },
+  '100': { min: 258409, max: 258452 },
   '200': { min: 244043, max: 251166 },
   '300': { min: 244018, max: 244080 },
   '400': { min: 236849, max: 236898 },
