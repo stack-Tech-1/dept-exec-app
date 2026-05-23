@@ -236,6 +236,7 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
   const captureRef = useRef<HTMLDivElement>(null)
   const currentUser = authService.getCurrentUser()
   const isAdmin = currentUser?.role === ROLES.ADMIN
+  const isElectionAdmin = isAdmin && ['Electoral Chairman', 'System Administrator'].includes(currentUser?.position ?? '')
 
   useEffect(() => {
     async function load() {
@@ -480,7 +481,7 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
                         {v.votedAt ? new Date(v.votedAt).toLocaleString() : '—'}
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        {confirmRevokeMatric === v.identifier ? (
+                        {isElectionAdmin && (confirmRevokeMatric === v.identifier ? (
                           <div className="flex items-center justify-end gap-1.5">
                             <button type="button"
                               onClick={() => setConfirmRevokeMatric(null)}
@@ -504,7 +505,7 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
                             <AlertTriangle className="w-3 h-3" />
                             Revoke
                           </button>
-                        )}
+                        ))}
                       </td>
                     </tr>
                   ))}

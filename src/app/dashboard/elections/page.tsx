@@ -569,10 +569,11 @@ function CreateVotingSessionModal({
 
 /* ─── Election Card ──────────────────────────────── */
 function ElectionCard({
-  election, isAdmin, onUpdate, onDelete
+  election, isAdmin, isElectionAdmin, onUpdate, onDelete
 }: {
   election: Election
   isAdmin: boolean
+  isElectionAdmin: boolean
   onUpdate: (e: Election) => void
   onDelete: (id: string) => void
 }) {
@@ -663,7 +664,7 @@ function ElectionCard({
           {/* Candidates */}
           {election.candidates.length > 0 ? (
             <div className="space-y-3">
-              {election.status === 'PENDING' && isAdmin ? (
+              {election.status === 'PENDING' && isElectionAdmin ? (
                 election.candidates.map(c => (
                   <div key={c._id} className="flex items-center gap-3">
                     <CandidateAvatar candidate={c} />
@@ -745,7 +746,7 @@ function ElectionCard({
           {/* Admin controls */}
           {isAdmin && (
             <div className="flex flex-wrap gap-2">
-              {election.status === 'PENDING' && (
+              {election.status === 'PENDING' && isElectionAdmin && (
                 <>
                   <button type="button" onClick={() => setAddingCandidate(true)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08]
@@ -761,7 +762,7 @@ function ElectionCard({
                   </button>
                 </>
               )}
-              {election.status === 'OPEN' && (
+              {election.status === 'OPEN' && isElectionAdmin && (
                 <>
                   <button type="button" onClick={() => handleStatusChange('PAUSED')} disabled={statusLoading}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/20 border border-amber-500/30
@@ -777,7 +778,7 @@ function ElectionCard({
                   </button>
                 </>
               )}
-              {election.status === 'PAUSED' && (
+              {election.status === 'PAUSED' && isElectionAdmin && (
                 <>
                   <button type="button" onClick={() => handleStatusChange('OPEN')} disabled={statusLoading}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30
@@ -793,15 +794,17 @@ function ElectionCard({
                   </button>
                 </>
               )}
-              <button type="button" onClick={handleShareLink}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors
-                  ${copiedLink
-                    ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
-                    : 'bg-white/[0.05] border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white'
-                  }`}>
-                {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-                {copiedLink ? 'Copied!' : 'Share Voting Link'}
-              </button>
+              {isElectionAdmin && (
+                <button type="button" onClick={handleShareLink}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors
+                    ${copiedLink
+                      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                      : 'bg-white/[0.05] border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white'
+                    }`}>
+                  {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                  {copiedLink ? 'Copied!' : 'Share Voting Link'}
+                </button>
+              )}
 
               {election.status !== 'PENDING' && (
                 <Link href={`/dashboard/elections/${election._id}/results`}
@@ -812,7 +815,7 @@ function ElectionCard({
                 </Link>
               )}
 
-              {election.status !== 'OPEN' && (
+              {election.status !== 'OPEN' && isElectionAdmin && (
                 confirmDelete ? (
                   <div className="flex items-center gap-1.5 ml-auto">
                     <button type="button" onClick={() => setConfirmDelete(false)}
@@ -861,6 +864,7 @@ export default function ElectionsPage() {
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'OPEN' | 'PAUSED' | 'CLOSED'>('ALL')
   const [showCreate, setShowCreate] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isElectionAdmin, setIsElectionAdmin] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [showCreateSession, setShowCreateSession] = useState(false)
   const [votingSessions, setVotingSessions] = useState<VotingSession[]>([])
@@ -886,6 +890,10 @@ export default function ElectionsPage() {
   useEffect(() => {
     const user = authService.getCurrentUser()
     setIsAdmin(user?.role === ROLES.ADMIN)
+    setIsElectionAdmin(
+      user?.role === ROLES.ADMIN &&
+      ['Electoral Chairman', 'System Administrator'].includes(user?.position ?? '')
+    )
   }, [])
 
   useEffect(() => {
@@ -1022,7 +1030,7 @@ export default function ElectionsPage() {
               Elections
             </h1>
           </div>
-          {isAdmin && (
+          {isElectionAdmin && (
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
@@ -1106,6 +1114,7 @@ export default function ElectionsPage() {
                 key={e._id}
                 election={e}
                 isAdmin={isAdmin}
+                isElectionAdmin={isElectionAdmin}
                 onUpdate={updateElection}
                 onDelete={handleDeleteElection}
               />
@@ -1179,7 +1188,7 @@ export default function ElectionsPage() {
                       {sessionCopied === s.token ? 'Copied!' : 'Copy Link'}
                     </button>
 
-                    {(getSessionStatus(s) === 'ACTIVE' || getSessionStatus(s) === 'PAUSED') && isAdmin && (
+                    {(getSessionStatus(s) === 'ACTIVE' || getSessionStatus(s) === 'PAUSED') && isElectionAdmin && (
                       <>
                         {getSessionStatus(s) === 'ACTIVE' ? (
                           <button
@@ -1231,7 +1240,7 @@ export default function ElectionsPage() {
                       </>
                     )}
 
-                    {(getSessionStatus(s) === 'DEACTIVATED' || getSessionStatus(s) === 'EXPIRED') && isAdmin && (
+                    {(getSessionStatus(s) === 'DEACTIVATED' || getSessionStatus(s) === 'EXPIRED') && isElectionAdmin && (
                       confirmDeleteSessionToken === s.token ? (
                         <div className="flex items-center gap-1.5">
                           <button

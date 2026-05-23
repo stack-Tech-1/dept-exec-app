@@ -35,7 +35,7 @@ function FieldIcon({ icon: Icon, children, disabled }: { icon: any; children: Re
 }
 
 export default function ProfileModal({ isOpen, onClose, user, onUpdate }: ProfileModalProps) {
-  const [formData, setFormData] = useState({ name: '', email: '', position: '', department: '', bio: '', phone: '', matricNumber: '' })
+  const [formData, setFormData] = useState({ name: '', email: '', position: '', department: '', bio: '', phone: '', matricNumber: '', role: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -44,7 +44,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
 
   useEffect(() => {
     if (user && isOpen) {
-      setFormData({ name: user.name || '', email: user.email || '', position: user.position || '', department: user.department || '', bio: user.bio || '', phone: user.phone || '', matricNumber: user.matricNumber || '' })
+      setFormData({ name: user.name || '', email: user.email || '', position: user.position || '', department: user.department || '', bio: user.bio || '', phone: user.phone || '', matricNumber: user.matricNumber || '', role: user.role || 'EXEC' })
       setError(''); setSaved(false)
     }
   }, [user, isOpen])
@@ -206,12 +206,13 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
                       { r: 'EXEC',  Icon: Briefcase, label: 'Executive',    color: '#3b82f6' },
                     ].map(({ r, Icon, label, color: c }) => (
                       <button key={r} type="button"
+                        onClick={() => set('role', r)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition-all
-                          ${user.role === r
+                          ${formData.role === r
                             ? 'border-[1.5px] text-white'
                             : 'border-white/[0.08] bg-white/[0.03] text-white/35 hover:text-white/60 hover:bg-white/[0.06]'}`}
-                        style={user.role === r ? { borderColor: c, background: c + '15', color: 'white', boxShadow: `0 4px 14px ${c}22` } : {}}>
-                        <Icon className="w-3.5 h-3.5" style={{ color: user.role === r ? c : undefined }} />
+                        style={formData.role === r ? { borderColor: c, background: c + '15', color: 'white', boxShadow: `0 4px 14px ${c}22` } : {}}>
+                        <Icon className="w-3.5 h-3.5" style={{ color: formData.role === r ? c : undefined }} />
                         {label}
                       </button>
                     ))}

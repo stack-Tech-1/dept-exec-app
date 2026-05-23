@@ -10,6 +10,10 @@ export const EXECUTIVE_POSITIONS = [
     "Assistant Sports Director",
     "Social Director",
     "Financial Secretary",
+    "Undergraduate Coordinator",
+    "Electoral Chairman",
+    "System Administrator",
+    "Electoral Committee",
     "Executive Member"
   ] as const;
   
@@ -27,6 +31,10 @@ export const EXECUTIVE_POSITIONS = [
       'Sports Director': 'bg-gradient-to-r from-red-500 to-red-700 text-white',
       'Assistant Sports Director': 'bg-gradient-to-r from-orange-500 to-orange-700 text-white',
       'Social Director': 'bg-gradient-to-r from-indigo-500 to-indigo-700 text-white',
+      'Undergraduate Coordinator': 'bg-gradient-to-r from-teal-500 to-teal-700 text-white',
+      'Electoral Chairman': 'bg-gradient-to-r from-violet-500 to-violet-700 text-white',
+      'System Administrator': 'bg-gradient-to-r from-slate-500 to-slate-700 text-white',
+      'Electoral Committee': 'bg-gradient-to-r from-cyan-500 to-cyan-700 text-white',
       'Executive Member': 'bg-gradient-to-r from-gray-500 to-gray-700 text-white'
     };
     return colors[position] || 'bg-gradient-to-r from-gray-500 to-gray-700 text-white';
@@ -44,6 +52,10 @@ export const EXECUTIVE_POSITIONS = [
       'Sports Director': '⚽',
       'Assistant Sports Director': '🏃',
       'Social Director': '🎉',
+      'Undergraduate Coordinator': '🎓',
+      'Electoral Chairman': '🗳',
+      'System Administrator': '⚙️',
+      'Electoral Committee': '📋',
       'Executive Member': '👤'
     };
     return icons[position] || '👤';
