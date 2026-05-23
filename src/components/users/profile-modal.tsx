@@ -35,7 +35,10 @@ function FieldIcon({ icon: Icon, children, disabled }: { icon: any; children: Re
 }
 
 export default function ProfileModal({ isOpen, onClose, user, onUpdate }: ProfileModalProps) {
-  const [formData, setFormData] = useState({ name: '', email: '', position: '', department: '', bio: '', phone: '', matricNumber: '', role: '' })
+  const [formData, setFormData] = useState<{
+    name: string; email: string; position: string; department: string
+    bio: string; phone: string; matricNumber: string; role: 'ADMIN' | 'EXEC' | ''
+  }>({ name: '', email: '', position: '', department: '', bio: '', phone: '', matricNumber: '', role: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -57,11 +60,15 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
     setLoading(true); setError('')
     try {
       if (isOwnProfile) {
-        await userService.updateProfile(formData)
-        const updated = { ...currentUser, ...formData }
+        const { role: _role, ...profileData } = formData
+        await userService.updateProfile(profileData)
+        const updated = { ...currentUser, ...profileData }
         if (typeof window !== 'undefined') localStorage.setItem('dept_exec_user', JSON.stringify(updated))
       } else if (currentUser?.role === 'ADMIN') {
-        await userService.updateUser(user.id, formData)
+        await userService.updateUser(user.id, {
+          ...formData,
+          role: (formData.role as 'ADMIN' | 'EXEC') || undefined,
+        })
       }
       setSaved(true)
       setTimeout(() => { onUpdate(); onClose() }, 1200)
