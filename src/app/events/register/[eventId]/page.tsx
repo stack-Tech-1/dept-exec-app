@@ -214,7 +214,7 @@ export default function GuestRegisterPage({ params }: { params: Promise<{ eventI
                     {event.isPaidEvent && (
                       <div className="flex items-center gap-2 text-amber-400/70 text-xs mt-1">
                         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>Payment confirmation required — you'll be notified by email</span>
+                        <span>Payment confirmation required — once you have made payment, you'll be notified by email</span>
                       </div>
                     )}
                   </div>
