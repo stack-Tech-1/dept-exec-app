@@ -46,6 +46,31 @@ export interface AllVoter {
   votedAt: string | null;
 }
 
+export interface AuditVote {
+  electionId: string
+  electionTitle: string
+  electionPosition: string
+  electionSession: string
+  candidateName: string | null
+  candidateMatric: string | null
+  votedAt: string
+}
+export interface DeletedVoterRecord {
+  member: { _id: string; name: string; matricNumber: string; level: string; isActive: false }
+  votes: AuditVote[]
+}
+export interface OrphanVoter {
+  matricNumber: string; name: string | null; isDeleted: boolean; votedAt: string
+}
+export interface OrphanVoteGroup {
+  electionId: string; electionTitle: string; electionPosition: string; electionSession: string
+  removedCandidateId: string; voteCount: number; voters: OrphanVoter[]
+}
+export interface VoteAudit {
+  deletedVoterRecords: DeletedVoterRecord[]
+  orphanVotes: OrphanVoteGroup[]
+}
+
 export interface VoterBreakdown {
   electionId: string;
   title: string;
@@ -87,6 +112,9 @@ class ElectionsService {
   }
   async getVoterBreakdown(id: string): Promise<VoterBreakdown> {
     return API.get(`/elections/${id}/voter-breakdown`) as any;
+  }
+  async getVoteAudit(): Promise<VoteAudit> {
+    return API.get('/elections/vote-audit') as any;
   }
 }
 

@@ -1030,25 +1030,35 @@ export default function ElectionsPage() {
               Elections
             </h1>
           </div>
-          {isElectionAdmin && (
+          {isAdmin && (
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); setShowCreateSession(true) }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-500/30
-                  bg-emerald-500/10 text-emerald-400 text-sm font-bold hover:bg-emerald-500/20 transition-colors">
-                <Link2 className="w-4 h-4" />
-                Create Voting Session
-              </button>
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={e => { e.stopPropagation(); setShowCreate(true) }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d]
-                  text-white text-sm font-bold shadow-[0_4px_16px_rgba(13,124,61,0.4)]">
-                <Plus className="w-4 h-4" />
-                New Election
-              </motion.button>
+              <Link href="/dashboard/elections/audit"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08]
+                  bg-white/[0.04] text-white/50 text-sm font-bold hover:text-white/80 hover:bg-white/[0.07] transition-colors">
+                <AlertTriangle className="w-4 h-4" />
+                Vote Audit
+              </Link>
+              {isElectionAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setShowCreateSession(true) }}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-500/30
+                      bg-emerald-500/10 text-emerald-400 text-sm font-bold hover:bg-emerald-500/20 transition-colors">
+                    <Link2 className="w-4 h-4" />
+                    Create Voting Session
+                  </button>
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={e => { e.stopPropagation(); setShowCreate(true) }}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0d7c3d] to-[#0a5a2d]
+                      text-white text-sm font-bold shadow-[0_4px_16px_rgba(13,124,61,0.4)]">
+                    <Plus className="w-4 h-4" />
+                    New Election
+                  </motion.button>
+                </>
+              )}
             </div>
           )}
         </div>
