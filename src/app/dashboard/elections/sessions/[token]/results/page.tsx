@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, use } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Download, Users, Trash2, Loader2, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Download, Users, Trash2, Loader2, AlertTriangle, History } from 'lucide-react'
 import Link from 'next/link'
 import { electionsService, type Election, type Candidate } from '@/services/elections'
-import { votingSessionService, getSessionStatus, type VotingSession, type SessionVoter } from '@/services/votingSession'
+import { votingSessionService, getSessionStatus, type VotingSession, type SessionVoter, type RevocationEntry } from '@/services/votingSession'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
 
@@ -228,11 +228,14 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
   const [error, setError] = useState<string | null>(null)
   const [partialError, setPartialError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
-  const [viewMode, setViewMode]           = useState<'results' | 'voters'>('results')
+  const [viewMode, setViewMode]           = useState<'results' | 'voters' | 'revocations'>('results')
   const [voters, setVoters]               = useState<SessionVoter[]>([])
   const [votersLoading, setVotersLoading] = useState(false)
   const [revokingMatric, setRevokingMatric]         = useState<string | null>(null)
   const [confirmRevokeMatric, setConfirmRevokeMatric] = useState<string | null>(null)
+  const [revocations, setRevocations]         = useState<RevocationEntry[]>([])
+  const [revocationsLoading, setRevocationsLoading] = useState(false)
+  const [revocationsLoaded, setRevocationsLoaded]   = useState(false)
   const captureRef = useRef<HTMLDivElement>(null)
   const currentUser = authService.getCurrentUser()
   const isAdmin = currentUser?.role === ROLES.ADMIN
@@ -277,6 +280,16 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
     finally { setVotersLoading(false) }
   }
 
+  const loadRevocations = async () => {
+    setRevocationsLoading(true)
+    try {
+      const data = await votingSessionService.getRevocationLog(token)
+      setRevocations(data)
+      setRevocationsLoaded(true)
+    } catch { /* silent */ }
+    finally { setRevocationsLoading(false) }
+  }
+
   const handleRevoke = async (matric: string) => {
     setRevokingMatric(matric)
     try {
@@ -289,6 +302,10 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
           .filter((r): r is PromiseFulfilledResult<Election> => r.status === 'fulfilled')
           .map(r => r.value)
       )
+      if (revocationsLoaded) {
+        const log = await votingSessionService.getRevocationLog(token)
+        setRevocations(log)
+      }
     } catch { /* silent */ }
     finally { setRevokingMatric(null); setConfirmRevokeMatric(null) }
   }
@@ -440,6 +457,18 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
             Voters{voters.length > 0 ? ` (${voters.length})` : ''}
           </button>
         )}
+        {isAdmin && (
+          <button type="button"
+            onClick={() => { setViewMode('revocations'); if (!revocationsLoaded) loadRevocations() }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              viewMode === 'revocations'
+                ? 'bg-rose-500/20 border border-rose-500/30 text-rose-400'
+                : 'bg-white/[0.04] border border-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.06]'
+            }`}>
+            <History className="w-3.5 h-3.5" />
+            Revocations{revocations.length > 0 ? ` (${revocations.length})` : ''}
+          </button>
+        )}
       </div>
 
       {/* Voters view */}
@@ -508,6 +537,88 @@ export default function SessionResultsPage({ params }: { params: Promise<{ token
                         ))}
                       </td>
                     </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Revocations view */}
+      {viewMode === 'revocations' && (
+        <div className="max-w-3xl mx-auto rounded-2xl border border-rose-500/20 overflow-hidden"
+          style={{ background: 'rgba(244,63,94,0.02)' }}>
+          {revocationsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 rounded-full border-2 border-rose-500/20 border-t-rose-500 animate-spin" />
+            </div>
+          ) : revocations.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-3">
+                <History className="w-5 h-5 text-white/20" />
+              </div>
+              <p className="text-white/25 text-sm">No votes have been revoked in this session.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-white/[0.03] border-b border-white/[0.05]">
+                    {['Member', 'Elections Voted In', 'Voted For', 'Revoked By', 'When Revoked'].map(h => (
+                      <th key={h} className="py-3 px-4 text-left text-[10px] font-black text-white/30 tracking-[0.12em] uppercase whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {revocations.map((r, idx) => (
+                    r.elections.length === 0 ? (
+                      <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <p className="text-white/80 font-medium text-xs">{r.memberName ?? <span className="text-white/25 italic">Unknown</span>}</p>
+                          <p className="text-[10px] text-white/30 font-mono mt-0.5">{r.identifier}</p>
+                          {r.memberIsDeleted && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-400 text-[9px] font-bold">Deleted</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-white/25 text-xs italic" colSpan={4}>No elections recorded</td>
+                      </tr>
+                    ) : (
+                      r.elections.map((el, elIdx) => (
+                        <tr key={`${idx}-${elIdx}`} className="hover:bg-white/[0.02] transition-colors">
+                          {elIdx === 0 && (
+                            <td className="py-3 px-4 whitespace-nowrap align-top" rowSpan={r.elections.length}>
+                              <p className="text-white/80 font-medium text-xs">{r.memberName ?? <span className="text-white/25 italic">Unknown</span>}</p>
+                              <p className="text-[10px] text-white/30 font-mono mt-0.5">{r.identifier}</p>
+                              {r.memberLevel && <p className="text-[10px] text-white/25 mt-0.5">Level {r.memberLevel}</p>}
+                              {r.memberIsDeleted && (
+                                <span className="mt-1 inline-block px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-400 text-[9px] font-bold">Deleted</span>
+                              )}
+                            </td>
+                          )}
+                          <td className="py-3 px-4 text-white/70 text-xs whitespace-nowrap">{el.electionTitle}</td>
+                          <td className="py-3 px-4 text-xs whitespace-nowrap">
+                            {el.candidateName
+                              ? <span className="text-emerald-400 font-semibold">{el.candidateName}</span>
+                              : <span className="text-white/25 italic">Candidate removed</span>}
+                          </td>
+                          {elIdx === 0 && (
+                            <>
+                              <td className="py-3 px-4 text-white/45 text-xs whitespace-nowrap align-top" rowSpan={r.elections.length}>
+                                {r.revokedBy
+                                  ? <><p className="font-medium">{r.revokedBy.name}</p><p className="text-[10px] text-white/25">{r.revokedBy.position}</p></>
+                                  : <span className="text-white/25">—</span>}
+                              </td>
+                              <td className="py-3 px-4 text-white/35 text-xs whitespace-nowrap align-top" rowSpan={r.elections.length}>
+                                {new Date(r.revokedAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))
+                    )
                   ))}
                 </tbody>
               </table>

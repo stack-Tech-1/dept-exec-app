@@ -25,6 +25,24 @@ export interface SessionVoter {
   votedAt: string
 }
 
+export interface RevocationElection {
+  electionId: string
+  electionTitle: string
+  candidateId: string | null
+  candidateName: string | null
+  votedAt: string
+}
+
+export interface RevocationEntry {
+  identifier: string
+  revokedAt: string
+  revokedBy: { name: string; position: string } | null
+  elections: RevocationElection[]
+  memberName: string | null
+  memberLevel: string | null
+  memberIsDeleted: boolean
+}
+
 export function getSessionStatus(s: VotingSession): 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'DEACTIVATED' {
   if (!s.isActive) return 'DEACTIVATED'
   if (s.expiresAt && new Date(s.expiresAt) < new Date()) return 'EXPIRED'
@@ -67,6 +85,10 @@ class VotingSessionService {
 
   async deleteSession(token: string): Promise<{ message: string }> {
     return API.delete(`/voting-sessions/${token}`) as any
+  }
+
+  async getRevocationLog(token: string): Promise<RevocationEntry[]> {
+    return API.get(`/voting-sessions/${token}/revocation-log`) as any
   }
 }
 
