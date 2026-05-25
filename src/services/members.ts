@@ -43,7 +43,7 @@ export interface RegistrationLink {
 }
 
 class MembersService {
-  async getMembers(params?: { level?: string; gender?: string; search?: string; duesPaid?: boolean; session?: string; page?: number; limit?: number }): Promise<{ members: Member[]; total: number; pages: number }> {
+  async getMembers(params?: { level?: string; gender?: string; search?: string; duesPaid?: boolean; session?: string; page?: number; limit?: number; isActive?: boolean }): Promise<{ members: Member[]; total: number; pages: number }> {
     return API.get('/members', { params }) as any;
   }
 
@@ -101,6 +101,10 @@ class MembersService {
 
   async rejectMember(id: string): Promise<{ message: string }> {
     return API.delete(`/members/${id}/reject`) as any;
+  }
+
+  async restoreMember(id: string): Promise<Member> {
+    return API.patch(`/members/${id}/restore`, {}) as any;
   }
 }
 

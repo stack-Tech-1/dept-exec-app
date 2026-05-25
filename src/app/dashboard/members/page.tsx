@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   UsersRound, Plus, Link2, Share2, Check, Trash2, X,
-  AlertTriangle, Loader2, Download, CheckCircle, Search, Pencil, Mail
+  AlertTriangle, Loader2, Download, CheckCircle, Search, Pencil, Mail, RotateCcw
 } from 'lucide-react'
 import { authService } from '@/services/auth'
 import { ROLES } from '@/lib/constants'
@@ -454,6 +454,8 @@ export default function MembersPage() {
   const [sendingCodeIds, setSendingCodeIds] = useState<Set<string>>(new Set())
   const [codeSentIds, setCodeSentIds]       = useState<Set<string>>(new Set())
   const [flaggedOnly, setFlaggedOnly]       = useState(false)
+  const [showDeleted, setShowDeleted]       = useState(false)
+  const [restoringId, setRestoringId]       = useState<string | null>(null)
   const [pendingDE, setPendingDE]           = useState<Member[]>([])
   const [approvingId, setApprovingId]       = useState<string | null>(null)
   const [rejectingId, setRejectingId]       = useState<string | null>(null)
@@ -482,11 +484,13 @@ export default function MembersPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [levelFilter, genderFilter, debouncedSearch, flaggedOnly])
+  }, [levelFilter, genderFilter, debouncedSearch, flaggedOnly, showDeleted])
 
   useEffect(() => {
     setMembersLoading(true)
-    const params = flaggedOnly
+    const params = showDeleted
+      ? { isActive: false, search: debouncedSearch || undefined, page: currentPage }
+      : flaggedOnly
       ? { limit: 1000 }
       : {
           level: levelFilter || undefined,
@@ -505,7 +509,7 @@ export default function MembersPage() {
       })
       .catch(() => { setMembers([]); setTotalMembers(0); setTotalPages(1) })
       .finally(() => setMembersLoading(false))
-  }, [levelFilter, genderFilter, debouncedSearch, currentPage, flaggedOnly])
+  }, [levelFilter, genderFilter, debouncedSearch, currentPage, flaggedOnly, showDeleted])
 
   const displayedMembers = flaggedOnly
     ? members.filter(m => isMatricFlagged(m.matricNumber, m.level, m.isDirectEntry))
@@ -534,6 +538,16 @@ export default function MembersPage() {
       setConfirmDeleteMemberId(null)
     } catch { /* silent — member stays in list */ }
     finally { setDeletingMemberId(null) }
+  }
+
+  const handleRestoreMember = async (id: string) => {
+    setRestoringId(id)
+    try {
+      await membersService.restoreMember(id)
+      setMembers(prev => prev.filter(m => m._id !== id))
+      setTotalMembers(t => t - 1)
+    } catch { /* silent */ }
+    finally { setRestoringId(null) }
   }
 
   const handleEditSaved = (updated: Member) => {
@@ -795,41 +809,47 @@ export default function MembersPage() {
           {/* Section header */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h2 className="text-sm font-black text-white/50 tracking-[0.15em] uppercase inline"
-                style={{ fontFamily: 'Syne, sans-serif' }}>Registered Members</h2>
+              <h2 className="text-sm font-black tracking-[0.15em] uppercase inline"
+                style={{ fontFamily: 'Syne, sans-serif', color: showDeleted ? 'rgba(251,113,133,0.7)' : 'rgba(255,255,255,0.5)' }}>
+                {showDeleted ? 'Deleted Members' : 'Registered Members'}
+              </h2>
               {!membersLoading && (
                 <span className="text-sm text-white/25 ml-2">— {totalMembers} total</span>
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Level filter */}
-              <select
-                value={levelFilter}
-                onChange={e => setLevelFilter(e.target.value)}
-                className={selectCls}
-              >
-                <option value="">All Levels</option>
-                {['100', '200', '300', '400', '500'].map(l => (
-                  <option key={l} value={l}>{l}L</option>
-                ))}
-              </select>
+              {/* Level filter — hidden in deleted/flagged view */}
+              {!showDeleted && !flaggedOnly && (
+                <select
+                  value={levelFilter}
+                  onChange={e => setLevelFilter(e.target.value)}
+                  className={selectCls}
+                >
+                  <option value="">All Levels</option>
+                  {['100', '200', '300', '400', '500'].map(l => (
+                    <option key={l} value={l}>{l}L</option>
+                  ))}
+                </select>
+              )}
 
-              {/* Gender filter */}
-              <select
-                value={genderFilter}
-                onChange={e => setGenderFilter(e.target.value)}
-                className={selectCls}
-              >
-                <option value="">All Genders</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+              {/* Gender filter — hidden in deleted/flagged view */}
+              {!showDeleted && !flaggedOnly && (
+                <select
+                  value={genderFilter}
+                  onChange={e => setGenderFilter(e.target.value)}
+                  className={selectCls}
+                >
+                  <option value="">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              )}
 
               {/* Flagged filter */}
               <button
                 type="button"
-                onClick={() => { setFlaggedOnly(f => !f); setLevelFilter(''); setGenderFilter('') }}
+                onClick={() => { setFlaggedOnly(f => !f); setShowDeleted(false); setLevelFilter(''); setGenderFilter('') }}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-colors ${
                   flaggedOnly
                     ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
@@ -838,6 +858,21 @@ export default function MembersPage() {
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Flagged
               </button>
+
+              {/* Deleted filter (admin only) */}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleted(d => !d); setFlaggedOnly(false); setLevelFilter(''); setGenderFilter('') }}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-colors ${
+                    showDeleted
+                      ? 'bg-rose-500/20 border-rose-500/30 text-rose-400'
+                      : 'bg-white/[0.04] border-white/[0.07] text-white/40 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400'
+                  }`}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Deleted
+                </button>
+              )}
 
               {/* Export CSV */}
               <button
@@ -882,7 +917,8 @@ export default function MembersPage() {
                 <UsersRound className="w-5 h-5 text-white/20" />
               </div>
               <p className="text-white/25 text-sm">
-                {flaggedOnly ? 'No flagged members found — all matric numbers are within valid ranges'
+                {showDeleted ? 'No deleted members found'
+                  : flaggedOnly ? 'No flagged members found — all matric numbers are within valid ranges'
                   : levelFilter || genderFilter || searchQuery ? 'No members match the selected filters'
                   : 'No registered members yet'}
               </p>
@@ -942,7 +978,14 @@ export default function MembersPage() {
                       </td>
                       {isAdmin && (
                         <td className="py-3 px-4 text-right whitespace-nowrap">
-                          {confirmDeleteMemberId === m._id ? (
+                          {showDeleted ? (
+                            <button onClick={() => handleRestoreMember(m._id)}
+                              disabled={restoringId === m._id}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 transition-colors disabled:opacity-40 ml-auto">
+                              {restoringId === m._id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                              Restore
+                            </button>
+                          ) : confirmDeleteMemberId === m._id ? (
                             <div className="flex items-center justify-end gap-1.5">
                               <button onClick={() => setConfirmDeleteMemberId(null)}
                                 className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 text-xs font-medium hover:text-white/70 transition-colors">
