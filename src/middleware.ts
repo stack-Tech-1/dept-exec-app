@@ -51,7 +51,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Public paths under otherwise-protected route trees
-  const publicPaths = ['/join/', '/vote/', '/events/register/'];
+  const publicPaths = ['/join/', '/vote/', '/events/register/', '/events/guest-ticket/'];
   if (publicPaths.some(path => pathname.startsWith(path))) {
     return NextResponse.next();
   }
