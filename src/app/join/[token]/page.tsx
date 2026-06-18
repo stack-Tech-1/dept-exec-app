@@ -171,6 +171,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
   const [isPending, setIsPending] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [rangeWarning, setRangeWarning] = useState(false)
 
   // Validate link on mount
   useEffect(() => {
@@ -201,8 +202,7 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
     e.preventDefault()
     setSubmitError('')
     if (!isDE && level && matricNumber.trim() && !isMatricInRange(matricNumber.trim(), level)) {
-      setSubmitError('Matric number is not in the valid range for the selected level. Please check your details.')
-      return
+      setRangeWarning(true)
     }
     setSubmitting(true)
     try {
@@ -407,11 +407,17 @@ export default function JoinPage({ params }: { params: Promise<{ token: string }
                       <input
                         type="text"
                         value={matricNumber}
-                        onChange={e => setMatricNumber(e.target.value)}
+                        onChange={e => { setMatricNumber(e.target.value); setRangeWarning(false) }}
                         placeholder="e.g. 244032"
                         className={inputCls}
                         required
                       />
+                      {rangeWarning && !isDE && (
+                        <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-400/90 leading-snug">
+                          <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                          Your matric number is outside the standard range for this level. Your registration will be submitted for admin review before you&apos;re activated.
+                        </p>
+                      )}
                     </Field>
 
                     <div className="sm:col-span-2 flex items-start gap-3 -mt-1">

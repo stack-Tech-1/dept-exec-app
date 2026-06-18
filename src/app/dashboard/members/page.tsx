@@ -721,12 +721,12 @@ export default function MembersPage() {
           )}
         </div>
 
-        {/* ── Pending D.E. Applications ── */}
+        {/* ── Pending Applications ── */}
         {isAdmin && pendingDE.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-black text-white/50 tracking-[0.15em] uppercase"
-                style={{ fontFamily: 'Syne, sans-serif' }}>Pending D.E. Applications</h2>
+                style={{ fontFamily: 'Syne, sans-serif' }}>Pending Applications</h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 border border-amber-500/30 text-amber-400">
                 {pendingDE.length}
               </span>
@@ -735,7 +735,7 @@ export default function MembersPage() {
               <div className="px-4 py-2.5 bg-amber-500/[0.06] border-b border-amber-500/10 flex items-center gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                 <p className="text-xs text-amber-400/80 font-medium">
-                  These students registered as Direct Entry. Review and approve or reject each application.
+                  These members require admin review — Direct Entry students or those with out-of-range matric numbers.
                 </p>
               </div>
               <div className="overflow-x-auto">
@@ -758,7 +758,12 @@ export default function MembersPage() {
                         <td className="py-3 px-4 text-white/80 font-medium whitespace-nowrap">{m.name}</td>
                         <td className="py-3 px-4 text-white/60 font-mono text-xs whitespace-nowrap">
                           <span>{m.matricNumber ?? <span className="text-white/20">—</span>}</span>
-                          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 border border-sky-500/25 text-sky-400">D.E.</span>
+                          {m.isDirectEntry
+                            ? <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 border border-sky-500/25 text-sky-400">D.E.</span>
+                            : isMatricFlagged(m.matricNumber, m.level)
+                              ? <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 border border-amber-500/25 text-amber-400">Out of range</span>
+                              : null
+                          }
                         </td>
                         <td className="py-3 px-4"><LevelBadge level={m.level} /></td>
                         <td className="py-3 px-4 text-white/45 text-xs whitespace-nowrap">
