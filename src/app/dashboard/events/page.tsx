@@ -368,10 +368,11 @@ function EventModal({
 
 /* ═══════════════════════ Event Card ═══════════════════════ */
 function EventCard({
-  event, isAdmin, currentUserId, onEdit, onStatusChange, onRsvp
+  event, isAdmin, canManageEvents, currentUserId, onEdit, onStatusChange, onRsvp
 }: {
   event: Event
   isAdmin: boolean
+  canManageEvents: boolean
   currentUserId: string | undefined
   onEdit: (e: Event) => void
   onStatusChange: (id: string, status: string) => void
@@ -488,13 +489,15 @@ function EventCard({
           </p>
         </div>
 
-        {/* Admin actions */}
-        {isAdmin && (
+        {/* Admin / event-manager actions */}
+        {canManageEvents && (
           <div className="flex items-center gap-2 pt-1 border-t border-white/[0.04]">
-            <button onClick={() => onEdit(event)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white/35 text-xs font-semibold hover:text-white/60 hover:bg-white/[0.07] transition-all">
-              <Edit className="w-3 h-3" />Edit
-            </button>
+            {isAdmin && (
+              <button onClick={() => onEdit(event)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white/35 text-xs font-semibold hover:text-white/60 hover:bg-white/[0.07] transition-all">
+                <Edit className="w-3 h-3" />Edit
+              </button>
+            )}
 
             {(event.isPaidEvent || event.guestRegistrationEnabled) && (
               <a href={`/dashboard/events/${event._id}/tickets`}
@@ -516,7 +519,7 @@ function EventCard({
               </button>
             )}
 
-            {transitions.length > 0 && (
+            {isAdmin && transitions.length > 0 && (
               <div className="relative">
                 <button onClick={() => setStatusMenu(v => !v)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white/35 text-xs font-semibold hover:text-white/60 hover:bg-white/[0.07] transition-all">
@@ -579,6 +582,7 @@ export default function EventsPage() {
 
   const isAdmin    = authService.isAdmin()
   const currentUser = authService.getCurrentUser()
+  const canManageEvents = isAdmin || currentUser?.position === 'Social Committee'
 
   useEffect(() => {
     fetchStats()
@@ -768,6 +772,7 @@ export default function EventsPage() {
                   key={event._id}
                   event={event}
                   isAdmin={isAdmin}
+                  canManageEvents={canManageEvents}
                   currentUserId={currentUser?.id}
                   onEdit={e => { setEditTarget(e) }}
                   onStatusChange={handleStatusChange}

@@ -8,11 +8,13 @@ export interface User {
   email: string;
   role: 'ADMIN' | 'EXEC';
   department?: string;
-  position: 'President' | 'Vice President' | 'General Secretary' | 
-            'Assistant General Secretary' | 'Treasurer' | 
+  position: 'President' | 'Vice President' | 'General Secretary' |
+            'Assistant General Secretary' | 'Treasurer' |
             'Public Relations Officer' | 'Sports Director' |
             'Assistant Sports Director' | 'Social Director' |
-            'Financial Secretary' | 'Executive Member';
+            'Financial Secretary' | 'Undergraduate Coordinator' |
+            'Electoral Chairman' | 'System Administrator' |
+            'Electoral Committee' | 'Social Committee' | 'Executive Member';
   lastLogin?: string;
 }
 
@@ -30,11 +32,13 @@ export interface RegisterData {
 export interface InviteData {
     email: string;
     role: 'ADMIN' | 'EXEC';
-    position: 'President' | 'Vice President' | 'General Secretary' | 
-            'Assistant General Secretary' | 'Treasurer' | 
+    position: 'President' | 'Vice President' | 'General Secretary' |
+            'Assistant General Secretary' | 'Treasurer' |
             'Public Relations Officer' | 'Sports Director' |
             'Assistant Sports Director' | 'Social Director' |
-            'Financial Secretary' | 'Executive Member'; 
+            'Financial Secretary' | 'Undergraduate Coordinator' |
+            'Electoral Chairman' | 'System Administrator' |
+            'Electoral Committee' | 'Social Committee' | 'Executive Member';
   }  
 
 class AuthService {
