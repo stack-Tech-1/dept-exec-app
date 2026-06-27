@@ -14,6 +14,7 @@ export const EXECUTIVE_POSITIONS = [
     "Electoral Chairman",
     "System Administrator",
     "Electoral Committee",
+    "Social Committee",
     "Executive Member"
   ] as const;
   
@@ -35,6 +36,7 @@ export const EXECUTIVE_POSITIONS = [
       'Electoral Chairman': 'bg-gradient-to-r from-violet-500 to-violet-700 text-white',
       'System Administrator': 'bg-gradient-to-r from-slate-500 to-slate-700 text-white',
       'Electoral Committee': 'bg-gradient-to-r from-cyan-500 to-cyan-700 text-white',
+      'Social Committee': 'bg-gradient-to-r from-rose-500 to-pink-700 text-white',
       'Executive Member': 'bg-gradient-to-r from-gray-500 to-gray-700 text-white'
     };
     return colors[position] || 'bg-gradient-to-r from-gray-500 to-gray-700 text-white';
@@ -56,6 +58,7 @@ export const EXECUTIVE_POSITIONS = [
       'Electoral Chairman': '🗳',
       'System Administrator': '⚙️',
       'Electoral Committee': '📋',
+      'Social Committee': '🎊',
       'Executive Member': '👤'
     };
     return icons[position] || '👤';

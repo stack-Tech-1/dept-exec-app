@@ -572,7 +572,7 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
+  const [tab, setTab] = useState<'upcoming' | 'current' | 'past'>('upcoming')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [modal, setModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Event | null>(null)
@@ -595,7 +595,11 @@ export default function EventsPage() {
   const fetchEvents = async () => {
     setLoading(true); setError('')
     try {
-      const res = await eventsService.getEvents(tab === 'upcoming' ? { upcoming: true } : {})
+      const params =
+        tab === 'upcoming' ? { upcoming: true } :
+        tab === 'current'  ? { status: 'ONGOING' } :
+        {}
+      const res = await eventsService.getEvents(params)
       const all = res.events ?? []
       const filtered = tab === 'past'
         ? all.filter(e => e.status === 'COMPLETED' || e.status === 'CANCELLED')
@@ -700,7 +704,7 @@ export default function EventsPage() {
 
         {/* ── Tabs ── */}
         <div className="flex items-center gap-1 border-b border-white/[0.06] pb-0">
-          {(['upcoming', 'past'] as const).map(t => (
+          {(['upcoming', 'current', 'past'] as const).map(t => (
             <button key={t} onClick={() => { setTab(t); setTypeFilter('ALL') }}
               className={`relative px-4 py-2.5 text-sm font-semibold capitalize transition-colors ${
                 tab === t ? 'text-emerald-400' : 'text-white/35 hover:text-white/60'
@@ -748,7 +752,7 @@ export default function EventsPage() {
             className="rounded-2xl bg-[#06100a] border border-white/[0.06] py-20 text-center">
             <CalendarDays className="w-10 h-10 text-white/8 mx-auto mb-3" />
             <p className="text-white/22 text-sm">
-              {tab === 'upcoming' ? 'No upcoming events.' : 'No past events yet.'}
+              {tab === 'upcoming' ? 'No upcoming events.' : tab === 'current' ? 'No events are currently ongoing.' : 'No past events yet.'}
             </p>
             {isAdmin && tab === 'upcoming' && (
               <button onClick={() => setModal(true)} className="mt-4 text-emerald-400/60 hover:text-emerald-400 text-sm transition-colors underline">
