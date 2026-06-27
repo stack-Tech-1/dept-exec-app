@@ -8,6 +8,7 @@ import {
   Search, RefreshCw, Ticket, X, UserPlus,
 } from 'lucide-react'
 import API from '@/services/api'
+import { authService } from '@/services/auth'
 import { toast } from 'sonner'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.ipeexecs.page/api'
@@ -64,6 +65,9 @@ interface Member { _id: string; name: string; email: string; matricNumber?: stri
 export default function TicketsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: eventId } = use(params)
   const router = useRouter()
+
+  const currentUser = authService.getCurrentUser()
+  const canConfirmPayments = authService.isAdmin() && currentUser?.position !== 'Social Committee'
 
   const [event, setEvent] = useState<EventInfo | null>(null)
   const [activeTab, setActiveTab] = useState<'members' | 'guests'>('members')
@@ -333,7 +337,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
               className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 hover:border-white/20 text-white/70 hover:text-white text-sm transition-colors">
               <Download className="w-4 h-4" /> Export
             </button>
-            {event?.isPaidEvent && (
+            {event?.isPaidEvent && canConfirmPayments && (
               <button onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-600/40 hover:border-emerald-500 text-emerald-400 hover:text-emerald-300 text-sm transition-colors">
                 <Plus className="w-4 h-4" /> Add Members
@@ -391,7 +395,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                           Checked In
                         </span>
                       )}
-                      {ticket.paymentStatus === 'PENDING' ? (
+                      {canConfirmPayments && (ticket.paymentStatus === 'PENDING' ? (
                         <button onClick={() => confirmPayment(ticket._id, ticket.memberName)}
                           disabled={confirming === ticket._id}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium transition-colors">
@@ -405,7 +409,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                           {resending === ticket._id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
                           Resend
                         </button>
-                      )}
+                      ))}
                     </div>
                   </div>
                   {ticket.items.length > 0 && (
@@ -507,7 +511,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                       )}
 
                       {/* Actions */}
-                      {guest.paymentStatus === 'PENDING' && (
+                      {canConfirmPayments && guest.paymentStatus === 'PENDING' && (
                         <button onClick={() => confirmGuestPayment(guest._id, guest.name)}
                           disabled={confirmingGuest === guest._id}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium transition-colors">
@@ -515,12 +519,14 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
                           Confirm
                         </button>
                       )}
-                      <button onClick={() => resendGuestEmail(guest._id, guest.name)}
-                        disabled={resendingGuest === guest._id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 text-white/50 hover:text-white/80 text-xs transition-colors disabled:opacity-50">
-                        {resendingGuest === guest._id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
-                        Resend
-                      </button>
+                      {canConfirmPayments && (
+                        <button onClick={() => resendGuestEmail(guest._id, guest.name)}
+                          disabled={resendingGuest === guest._id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 text-white/50 hover:text-white/80 text-xs transition-colors disabled:opacity-50">
+                          {resendingGuest === guest._id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                          Resend
+                        </button>
+                      )}
                     </div>
                   </div>
 
