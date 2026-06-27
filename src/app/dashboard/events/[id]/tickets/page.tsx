@@ -86,6 +86,11 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   const [confirmingGuest, setConfirmingGuest] = useState<string | null>(null)
   const [resendingGuest, setResendingGuest] = useState<string | null>(null)
 
+  // Filter state
+  const [checkinFilter, setCheckinFilter] = useState<'all' | 'in' | 'out'>('all')
+  const [itemFilter, setItemFilter] = useState<string | null>(null)
+  const [guestCheckinFilter, setGuestCheckinFilter] = useState<'all' | 'in' | 'out'>('all')
+
   useEffect(() => { loadAll() }, [eventId])
 
   const loadAll = async () => {
@@ -201,17 +206,30 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
   }
 
   /* ── Derived ─────────────────────────────────── */
-  const filteredTickets = tickets.filter(t =>
-    t.memberName.toLowerCase().includes(search.toLowerCase()) ||
-    t.matricNumber?.toLowerCase().includes(search.toLowerCase()) ||
-    t.memberEmail.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredTickets = tickets.filter(t => {
+    const matchSearch = !search ||
+      t.memberName.toLowerCase().includes(search.toLowerCase()) ||
+      t.matricNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      t.memberEmail.toLowerCase().includes(search.toLowerCase())
+    const matchCheckin = checkinFilter === 'all' ? true : checkinFilter === 'in' ? t.checkedIn : !t.checkedIn
+    const matchItem = !itemFilter ? true : t.items.some(i => i.name === itemFilter && i.claimed)
+    return matchSearch && matchCheckin && matchItem
+  })
 
-  const filteredGuests = guests.filter(g =>
-    g.name.toLowerCase().includes(guestSearch.toLowerCase()) ||
-    g.email.toLowerCase().includes(guestSearch.toLowerCase()) ||
-    g.department?.toLowerCase().includes(guestSearch.toLowerCase())
-  )
+  const filteredGuests = guests.filter(g => {
+    const matchSearch = !guestSearch ||
+      g.name.toLowerCase().includes(guestSearch.toLowerCase()) ||
+      g.email.toLowerCase().includes(guestSearch.toLowerCase()) ||
+      g.department?.toLowerCase().includes(guestSearch.toLowerCase())
+    const matchCheckin = guestCheckinFilter === 'all' ? true : guestCheckinFilter === 'in' ? g.checkedIn : !g.checkedIn
+    return matchSearch && matchCheckin
+  })
+
+  const itemStats = (event?.ticketItems ?? []).map(itemName => ({
+    name: itemName,
+    claimed: tickets.filter(t => t.items.some(i => i.name === itemName && i.claimed)).length,
+    total: tickets.filter(t => t.items.some(i => i.name === itemName)).length,
+  }))
 
   const confirmedTickets = tickets.filter(t => t.paymentStatus === 'CONFIRMED').length
   const checkedInTickets = tickets.filter(t => t.checkedIn).length
@@ -323,6 +341,30 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
             )}
           </div>
 
+          {/* Check-in & item filters */}
+          <div className="flex gap-2 flex-wrap items-center">
+            {(['all', 'in', 'out'] as const).map(f => (
+              <button key={f} onClick={() => setCheckinFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  checkinFilter === f
+                    ? 'bg-sky-500/15 border-sky-500/30 text-sky-400'
+                    : 'bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60'
+                }`}>
+                {f === 'all' ? `All (${tickets.length})` : f === 'in' ? `✓ Checked In (${checkedInTickets})` : `✗ Not In (${tickets.length - checkedInTickets})`}
+              </button>
+            ))}
+            {itemStats.map(s => (
+              <button key={s.name} onClick={() => setItemFilter(itemFilter === s.name ? null : s.name)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  itemFilter === s.name
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                    : 'bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60'
+                }`}>
+                {s.name}: {s.claimed}/{s.total} claimed
+              </button>
+            ))}
+          </div>
+
           {/* Member ticket list */}
           {!filteredTickets.length ? (
             <div className="text-center py-16 text-white/30">
@@ -399,6 +441,20 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
               className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 hover:border-white/20 text-white/70 hover:text-white text-sm transition-colors">
               <Download className="w-4 h-4" /> Export
             </button>
+          </div>
+
+          {/* Guest check-in filter */}
+          <div className="flex gap-2 flex-wrap items-center">
+            {(['all', 'in', 'out'] as const).map(f => (
+              <button key={f} onClick={() => setGuestCheckinFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  guestCheckinFilter === f
+                    ? 'bg-sky-500/15 border-sky-500/30 text-sky-400'
+                    : 'bg-white/[0.03] border-white/10 text-white/40 hover:text-white/60'
+                }`}>
+                {f === 'all' ? `All (${guests.length})` : f === 'in' ? `✓ Checked In (${checkedInGuests})` : `✗ Not In (${guests.length - checkedInGuests})`}
+              </button>
+            ))}
           </div>
 
           {!event?.guestRegistrationEnabled && guests.length === 0 && (
